@@ -1,0 +1,28 @@
+// Legacy-friendly categories file for environments where module import or fetch may be blocked (e.g., file://)
+window.CANONICAL_CATEGORIES = [
+  "Advocacy",
+  "Arts",
+  "Arts & Culture",
+  "Business",
+  "Childcare",
+  "Community",
+  "Disability Services",
+  "Economic Development",
+  "Education",
+  "Education & Training",
+  "Environmental",
+  "Environment",
+  "Government",
+  "Health",
+  "Housing",
+  "Legal",
+  "Mental Health",
+  "Non-Profit",
+  "Other",
+  "Peer Support",
+  "Research",
+  "Senior Services",
+  "Social Services",
+  "Support Group",
+  "Technology"
+];

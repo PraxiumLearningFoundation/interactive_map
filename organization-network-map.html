@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Praxium Global Network</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+        }
+        
+        #map-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        #map {
+            flex: 1;
+            height: 100%;
+        }
+        
+        #sidebar {
+            width: 300px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            overflow-y: auto;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+        }
+        
+        .org-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .org-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .org-name {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .org-location {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 3px;
+        }
+        
+        .org-details {
+            margin-top: 8px;
+            font-size: 0.85em;
+        }
+        
+        .connection-line {
+            stroke: #3498db;
+            stroke-width: 2;
+            stroke-dasharray: 5, 5;
+            opacity: 0.7;
+        }
+        
+        .connection-line.active {
+            stroke: #e74c3c;
+            stroke-width: 3;
+            stroke-dasharray: none;
+            opacity: 1;
+        }
+        
+        .marker-cluster {
+            background-color: rgba(52, 152, 219, 0.6);
+        }
+        
+        .marker-cluster div {
+            background-color: rgba(41, 128, 185, 0.6);
+            color: white;
+            font-weight: bold;
+        }
+        
+        #filter-container {
+            padding: 15px;
+            background-color: #ffffff;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 15px;
+        }
+        
+        #search-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        
+        #category-filter {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .popup-content {
+            max-width: 300px;
+        }
+        
+        .popup-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+        
+        .popup-description {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .popup-contact {
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+        
+        .popup-website {
+            display: inline-block;
+            margin-top: 8px;
+            text-decoration: none;
+            background-color: #3498db;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .legend-text {
+            font-size: 12px;
+        }
+        /* Highlight variables - overridable for dark mode */
+        :root {
+            --selected-bg: #f0f7ff;
+            --connected-bg: #f0fff7;
+            --org-item-bg: #ffffff;
+            --org-text: #17202a; /* stronger contrast */
+            --org-subtext: #56606a; /* slightly darker */
+            --popup-bg: #ffffff;
+            --popup-color: #111111; /* high contrast on light */
+            --popup-button-bg: #005f8a; /* darker, higher-contrast blue */
+            --popup-button-text: #ffffff;
+        }
+        /* Dark mode styles */
+        body.dark, body.dark html {
+            background: #0f1720;
+            color: #e6eef6;
+        }
+
+        body.dark #sidebar {
+            background-color: #0b1220;
+            color: #e6eef6;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.6);
+        }
+
+        body.dark .org-item {
+            background-color: #0f1724;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.6);
+        }
+
+        body.dark .org-item:hover {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.7);
+            transform: translateY(-2px);
+        }
+
+        body.dark .org-name, body.dark .org-location, body.dark .org-details {
+            color: #d8e6f2;
+        }
+
+        body.dark #filter-container {
+            background-color: #07111a;
+            border-bottom-color: rgba(255,255,255,0.06);
+        }
+
+        body.dark #legend {
+            background: #08121a;
+            color: #e6eef6;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.6);
+        }
+
+        /* Override highlight variables for dark mode */
+        body.dark {
+            --selected-bg: #163142;
+            --connected-bg: #0f2a1f;
+            --org-item-bg: #0f1724;
+            --org-text: #d8e6f2;
+            --org-subtext: #9fb3c1;
+            --popup-bg: #07121a;
+            --popup-color: #e6eef6;
+            --popup-button-bg: #1f6fa8;
+            --popup-button-text: #ffffff;
+        }
+
+        /* Sidebar highlight classes */
+        /* ensure base org-item background overrides any inline styles */
+        .org-item { background-color: var(--org-item-bg) !important; color: var(--org-text); }
+        .org-item.selected { background-color: var(--selected-bg) !important; }
+        .org-item.connected { background-color: var(--connected-bg) !important; }
+
+        .org-name { color: var(--org-text); }
+        .org-location, .org-details { color: var(--org-subtext); }
+
+        /* Popup dark mode adjustments */
+        body.dark .leaflet-popup-content-wrapper, body.dark .leaflet-popup-tip {
+            background: var(--popup-bg) !important;
+            color: var(--popup-color) !important;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.6) !important;
+        }
+
+        body.dark .popup-title, body.dark .popup-description, body.dark .popup-contact {
+            color: var(--popup-color);
+        }
+
+        /* Ensure popup buttons keep our colors even if Leaflet's general link color applies */
+        .popup-website { background-color: var(--popup-button-bg) !important; color: var(--popup-button-text) !important; text-decoration: none !important; border: none !important; }
+        body.dark .popup-website { background-color: var(--popup-button-bg) !important; color: var(--popup-button-text) !important; }
+
+        /* Stronger specificity to override Leaflet's .leaflet-container a rules */
+        .leaflet-popup-content-wrapper a.popup-website,
+        .leaflet-popup-content a.popup-website {
+            background-color: var(--popup-button-bg) !important;
+            color: var(--popup-button-text) !important;
+            text-decoration: none !important;
+            padding: 6px 10px !important;
+            border-radius: 4px !important;
+            display: inline-block !important;
+        }
+
+        .leaflet-popup-content-wrapper a.popup-website:hover,
+        .leaflet-popup-content a.popup-website:hover {
+            filter: brightness(0.92);
+        }
+
+        #dark-mode-toggle {
+            float: right;
+            padding: 6px 8px;
+            font-size: 13px;
+            border-radius: 4px;
+            border: 1px solid rgba(0,0,0,0.08);
+            background: #ffffff;
+            cursor: pointer;
+        }
+
+        body.dark #dark-mode-toggle {
+            background: #0b1220;
+            color: #e6eef6;
+            border-color: rgba(255,255,255,0.06);
+        }
+
+        /* ========== MOBILE SIDEBAR TOGGLE BUTTON ========== */
+        #sidebar-toggle {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1100;
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            cursor: pointer;
+            font-size: 24px;
+            line-height: 1;
+            padding: 0;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        #sidebar-toggle:active {
+            transform: scale(0.95);
+        }
+
+        body.dark #sidebar-toggle {
+            background: #0b1220;
+            color: #e6eef6;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        /* Legend toggle button (mobile) */
+        #legend-toggle {
+            display: none;
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            z-index: 1100;
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            padding: 0;
+        }
+
+        #legend-toggle:active {
+            transform: scale(0.95);
+        }
+
+        body.dark #legend-toggle {
+            background: #0b1220;
+            color: #e6eef6;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        /* ========== TABLET BREAKPOINT (max-width: 900px) ========== */
+        @media (max-width: 900px) {
+            #map-container {
+                flex-direction: column-reverse;
+            }
+
+            #sidebar {
+                width: 100%;
+                max-height: 40vh;
+                box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+            }
+
+            #map {
+                height: 60vh;
+            }
+
+            #legend {
+                bottom: auto;
+                top: 10px;
+                right: 10px;
+                max-width: 150px;
+                font-size: 11px;
+            }
+
+            .legend-color {
+                width: 18px;
+                height: 18px;
+            }
+        }
+
+        /* ========== MOBILE BREAKPOINT (max-width: 600px) ========== */
+        @media (max-width: 600px) {
+            #sidebar-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            #legend-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            #map-container {
+                flex-direction: column;
+                height: 100vh;
+                height: 100dvh; /* Dynamic viewport height for mobile browsers */
+            }
+
+            #sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 85%;
+                max-width: 320px;
+                height: 100%;
+                max-height: 100%;
+                z-index: 1050;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+            }
+
+            #sidebar.sidebar-open {
+                transform: translateX(0);
+            }
+
+            /* Sidebar overlay */
+            #sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                z-index: 1040;
+            }
+
+            #sidebar-overlay.show {
+                display: block;
+            }
+
+            #map {
+                flex: 1;
+                height: 100%;
+                width: 100%;
+            }
+
+            /* Larger touch targets for inputs */
+            #search-input {
+                padding: 12px;
+                font-size: 16px; /* Prevents iOS zoom on focus */
+            }
+
+            #category-filter {
+                padding: 12px;
+                font-size: 16px;
+            }
+
+            /* Larger touch targets for org items */
+            .org-item {
+                padding: 14px;
+                min-height: 44px;
+            }
+
+            /* Touch-friendly hover replacement */
+            .org-item:active {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            }
+
+            /* Legend hidden by default, shown via toggle */
+            #legend {
+                display: none;
+                position: fixed;
+                bottom: 60px;
+                right: 10px;
+                top: auto;
+                max-width: 180px;
+                z-index: 1100;
+            }
+
+            #legend.legend-open {
+                display: block;
+            }
+
+            .legend-color {
+                width: 22px;
+                height: 22px;
+            }
+
+            .legend-text {
+                font-size: 14px;
+            }
+
+            /* Popup adjustments */
+            .popup-content {
+                max-width: 260px;
+            }
+
+            .popup-website {
+                padding: 10px 16px !important;
+                font-size: 14px;
+                min-height: 44px;
+                display: inline-flex !important;
+                align-items: center;
+            }
+
+            .leaflet-popup-content-wrapper a.popup-website,
+            .leaflet-popup-content a.popup-website {
+                padding: 10px 16px !important;
+                font-size: 14px;
+            }
+
+            /* Header adjustments */
+            #sidebar h2 {
+                font-size: 18px;
+                padding-right: 10px;
+            }
+
+            #dark-mode-toggle {
+                padding: 10px 12px;
+                font-size: 14px;
+                min-width: 44px;
+                min-height: 44px;
+            }
+
+            /* Leaflet zoom controls - larger for touch */
+            .leaflet-control-zoom a {
+                width: 36px !important;
+                height: 36px !important;
+                line-height: 36px !important;
+                font-size: 20px !important;
+            }
+        }
+
+        /* ========== SMALL MOBILE (max-width: 400px) ========== */
+        @media (max-width: 400px) {
+            #sidebar {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .popup-content {
+                max-width: 220px;
+            }
+
+            #legend {
+                max-width: 160px;
+                padding: 8px;
+            }
+
+            .legend-text {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <script src="categories.legacy.js"></script>
+    
+    <!-- Mobile sidebar toggle button -->
+    <button id="sidebar-toggle" aria-label="Toggle sidebar menu">☰</button>
+    
+    <!-- Mobile legend toggle button -->
+    <button id="legend-toggle" aria-label="Toggle legend">🗺️</button>
+    
+    <!-- Sidebar overlay for mobile -->
+    <div id="sidebar-overlay"></div>
+    
+    <div id="map-container">
+        <div id="sidebar">
+            <h2 style="display:flex;align-items:center;justify-content:space-between;">Praxium Network
+                <button id="dark-mode-toggle" aria-label="Toggle dark mode">Dark</button>
+            </h2>
+            <div id="filter-container">
+                <input type="text" id="search-input" placeholder="Search organizations...">
+                <select id="category-filter">
+                    <option value="all">All Categories</option>
+                </select>
+                
+            </div>
+            <div id="organization-list">
+                <!-- Organization items will be generated here -->
+            </div>
+        </div>
+        
+        <div id="map"></div>
+        
+        <div id="legend">
+            <h4 style="margin-top: 0; margin-bottom: 8px;">Categories</h4>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #3498db;"></div>
+                <div class="legend-text">Education</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #2ecc71;"></div>
+                <div class="legend-text">Research</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #e74c3c;"></div>
+                <div class="legend-text">Non-Profit</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #9b59b6;"></div>
+                <div class="legend-text">Technology</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #f39c12;"></div>
+                <div class="legend-text">Community</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Leaflet JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        // Data source configuration
+        // Set `DATA_URL` to the provided Gist raw JSON URL.
+        const DATA_URL = 'https://gist.githubusercontent.com/PraxiumLearning03/a139fdb216bcc3e91b67754c283f3805/raw/f28f5077bbf6bf9b967e4efe258de08b4f404d4b/organization-network-map.json';
+
+        // Shared canonical categories (loaded from categories.json)
+        let CANONICAL_CATEGORIES = [];
+
+        // No local default dataset; data is loaded from the remote `DATA_URL`.
+
+        // The live dataset used by the map (populated by loadNetworkData)
+        let organizationsData = [];
+
+        // Initialize the map centered on a middle point
+        const INITIAL_VIEW = { center: [20, 0], zoom: 2 };
+        const map = L.map('map').setView(INITIAL_VIEW.center, INITIAL_VIEW.zoom);
+
+        // Track currently selected organization (for toggle behavior)
+        let currentSelectedId = null;
+
+        // Dark mode toggle handler
+        const darkToggleBtn = document.getElementById('dark-mode-toggle');
+        function updateDarkButton() {
+            const isDark = document.body.classList.contains('dark');
+            darkToggleBtn.textContent = isDark ? 'Light' : 'Dark';
+            darkToggleBtn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+        }
+
+        function toggleDarkMode() {
+            const isDark = document.body.classList.toggle('dark');
+            // switch tiles
+            setBaseLayer(isDark ? DARK_TILE_URL : LIGHT_TILE_URL);
+            localStorage.setItem('praxium-dark-mode', isDark ? 'true' : 'false');
+            updateDarkButton();
+            // update marker icons and sidebar styles
+            updateMarkerIcons();
+        }
+
+        if (darkToggleBtn) {
+            darkToggleBtn.addEventListener('click', toggleDarkMode);
+            updateDarkButton();
+        }
+
+        // ========== MOBILE SIDEBAR & LEGEND TOGGLE ==========
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const legendToggle = document.getElementById('legend-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const legend = document.getElementById('legend');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+        function openSidebar() {
+            sidebar.classList.add('sidebar-open');
+            sidebarOverlay.classList.add('show');
+            sidebarToggle.innerHTML = '✕';
+            sidebarToggle.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('sidebar-open');
+            sidebarOverlay.classList.remove('show');
+            sidebarToggle.innerHTML = '☰';
+            sidebarToggle.setAttribute('aria-expanded', 'false');
+        }
+
+        function toggleSidebar() {
+            if (sidebar.classList.contains('sidebar-open')) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
+        }
+
+        function toggleLegend() {
+            const isOpen = legend.classList.toggle('legend-open');
+            legendToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', toggleSidebar);
+        }
+
+        if (legendToggle) {
+            legendToggle.addEventListener('click', toggleLegend);
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', closeSidebar);
+        }
+
+        // Close sidebar when an organization is selected on mobile
+        function closeSidebarOnMobile() {
+            if (window.innerWidth <= 600) {
+                closeSidebar();
+            }
+        }
+
+        // Tile layers (light and dark). We keep reference in `baseLayer` so we can switch.
+        const LIGHT_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        const DARK_TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+        const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+        // Create base layer reference (will be added to map below depending on mode)
+        let baseLayer = null;
+
+        function setBaseLayer(url) {
+            if (baseLayer) map.removeLayer(baseLayer);
+            baseLayer = L.tileLayer(url, { attribution: TILE_ATTRIBUTION });
+            baseLayer.addTo(map);
+        }
+
+        // Initialize layer based on saved preference
+        const savedDark = localStorage.getItem('praxium-dark-mode');
+        const initialDark = savedDark === 'true';
+        setBaseLayer(initialDark ? DARK_TILE_URL : LIGHT_TILE_URL);
+        if (initialDark) document.body.classList.add('dark');
+
+        // Store markers and connection lines
+        const markers = {};
+        const connectionLines = [];
+
+        // Color palette (20 colors) and dynamic category maps
+        const COLOR_PALETTE = [
+            '#1f78b4','#33a02c','#e31a1c','#6a3d9a','#ff7f00','#b15928','#a6cee3','#b2df8a','#fb9a99','#cab2d6',
+            '#fdbf6f','#ffff99','#8dd3c7','#bebada','#fb8072','#80b1d3','#fdb462','#b3de69','#fccde5','#d9d9d9'
+        ];
+
+        // Maps: category -> color (light), category -> color (dark)
+        let categoryColorMap = {};
+        let categoryColorMapDark = {};
+
+        function hexToRgb(hex) {
+            const h = hex.replace('#','');
+            return [parseInt(h.substring(0,2),16), parseInt(h.substring(2,4),16), parseInt(h.substring(4,6),16)];
+        }
+
+        function rgbToHex(r,g,b){
+            return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+        }
+
+        // Slightly adjust colors for dark mode (brighten by 12%)
+        function adjustColorForDark(hex){
+            try{
+                const [r,g,b] = hexToRgb(hex);
+                const factor = 1.12;
+                const nr = Math.min(255, Math.round(r*factor));
+                const ng = Math.min(255, Math.round(g*factor));
+                const nb = Math.min(255, Math.round(b*factor));
+                return rgbToHex(nr,ng,nb);
+            }catch(e){ return hex; }
+        }
+
+        function assignColorsToCategories(categories){
+            categoryColorMap = {};
+            categoryColorMapDark = {};
+            categories.forEach((cat, idx)=>{
+                const key = cat.toString().trim();
+                const base = COLOR_PALETTE[idx % COLOR_PALETTE.length];
+                categoryColorMap[key] = base;
+                categoryColorMapDark[key] = adjustColorForDark(base);
+            });
+        }
+
+        // Normalize raw category string to canonical category if possible
+        function normalizeCategory(raw) {
+            if (!raw && raw !== 0) return '';
+            const trimmed = raw.toString().trim();
+            if (!trimmed) return '';
+            if (Array.isArray(CANONICAL_CATEGORIES) && CANONICAL_CATEGORIES.length) {
+                // Direct case-insensitive match
+                const direct = CANONICAL_CATEGORIES.find(c => c.toLowerCase() === trimmed.toLowerCase());
+                if (direct) return direct;
+
+                // Simplified match: normalize punctuation/spacing
+                const simplify = s => s.toLowerCase().replace(/[-_]+/g,' ').replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
+                const sTrim = simplify(trimmed);
+                const found = CANONICAL_CATEGORIES.find(c => simplify(c) === sTrim);
+                if (found) return found;
+            }
+            // Fallback: title-case the value for nicer display
+            return trimmed.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        }
+
+        function createMarkerIcon(category){
+            const key = (category||'').toString().trim();
+            const isDark = document.body.classList.contains('dark');
+            const color = isDark ? (categoryColorMapDark[key] || '#95a5a6') : (categoryColorMap[key] || '#7f8c8d');
+            return L.divIcon({
+                html: `<div style="background-color: ${color}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>`,
+                className: 'custom-marker',
+                iconSize: [16,16],
+                iconAnchor: [8,8]
+            });
+        }
+
+        function updateMarkerIcons(){
+            Object.keys(markers).forEach(id=>{
+                const marker = markers[id];
+                const org = organizationsData.find(o=>Number(o.id)===Number(id));
+                if (marker && org){
+                    marker.setIcon(createMarkerIcon(org.category));
+                }
+            });
+        }
+
+        // Markers and sidebar will be created by `initializeMap()` after data is loaded.
+
+        // Draw connections between organizations
+        function drawConnections() {
+            // Clear existing connection lines
+            connectionLines.forEach(line => map.removeLayer(line));
+            connectionLines.length = 0;
+            
+            // Draw new connection lines
+            organizationsData.forEach(org => {
+                if (org.connections && org.connections.length) {
+                    org.connections.forEach(connectedId => {
+                        // Avoid duplicate lines
+                        if (org.id < connectedId) {
+                            const connectedOrg = organizationsData.find(o => o.id === connectedId);
+                            if (connectedOrg) {
+                                const line = L.polyline([org.coordinates, connectedOrg.coordinates], {
+                                    className: 'connection-line',
+                                    dashArray: '5, 5',
+                                    weight: 2,
+                                    color: '#3498db',
+                                    opacity: 0.7
+                                }).addTo(map);
+                                
+                                connectionLines.push(line);
+                                
+                                // Add data attributes to the line for filtering
+                                line.orgIds = [org.id, connectedId];
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        // Highlight connections for a specific organization
+        function highlightConnections(orgId) {
+            // Reset all connections style
+            connectionLines.forEach(line => {
+                line.setStyle({
+                    weight: 2,
+                    color: '#3498db',
+                    opacity: 0.7,
+                    dashArray: '5, 5'
+                });
+            });
+
+            // Highlight connections for the selected organization
+            connectionLines.forEach(line => {
+                if (orgId !== null && line.orgIds.includes(Number(orgId))) {
+                    line.setStyle({
+                        weight: 3,
+                        color: '#e74c3c',
+                        opacity: 1,
+                        dashArray: null
+                    });
+
+                    // Bring to front
+                    line.bringToFront();
+                }
+            });
+
+            // Sidebar: clear classes
+            document.querySelectorAll('.org-item').forEach(item => {
+                item.classList.remove('selected', 'connected');
+            });
+
+            if (orgId === null) return;
+
+            const selectedItem = document.querySelector(`.org-item[data-id="${orgId}"]`);
+            if (selectedItem) {
+                selectedItem.classList.add('selected');
+                selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            // Highlight connected organizations in the sidebar via class
+            const org = organizationsData.find(o => o.id === Number(orgId));
+            if (org && org.connections) {
+                org.connections.forEach(connectedId => {
+                    const connectedItem = document.querySelector(`.org-item[data-id="${connectedId}"]`);
+                    if (connectedItem) {
+                        connectedItem.classList.add('connected');
+                    }
+                });
+            }
+        }
+
+        // Populate category filter options based on loaded data
+        function populateFilterOptions(){
+            const filter = document.getElementById('category-filter');
+            // clear existing except the 'all' option
+            filter.querySelectorAll('option:not([value="all"])').forEach(o=>o.remove());
+
+            const discovered = Array.from(new Set(organizationsData.map(o => (o.category||o.type||'').toString().trim()).filter(Boolean))).sort();
+
+            // Order categories by canonical list first, then any extras
+            let ordered = [];
+            if (Array.isArray(CANONICAL_CATEGORIES) && CANONICAL_CATEGORIES.length){
+                ordered = CANONICAL_CATEGORIES.filter(c => discovered.includes(c));
+                discovered.forEach(c => { if (!ordered.includes(c)) ordered.push(c); });
+            } else {
+                ordered = discovered;
+            }
+
+            // Assign palette colors to discovered categories
+            assignColorsToCategories(ordered);
+
+            // populate select using ordered list
+            ordered.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                filter.appendChild(opt);
+            });
+
+            // when selection changes just filter; no custom option
+            filter.onchange = () => { filterOrganizations(); };
+
+            // Update legend dynamically using ordered list
+            const legendEl = document.getElementById('legend');
+            if (legendEl) {
+                let html = '<h4 style="margin-top: 0; margin-bottom: 8px;">Categories</h4>';
+                ordered.forEach(cat=>{
+                    const color = categoryColorMap[cat] || '#95a5a6';
+                    html += `<div class="legend-item"><div class="legend-color" style="background-color: ${color};"></div><div class="legend-text">${cat}</div></div>`;
+                });
+                legendEl.innerHTML = html;
+            }
+        }
+
+        // Filter organizations based on search and category
+        function filterOrganizations() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const categoryFilter = document.getElementById('category-filter').value;
+            
+            organizationsData.forEach(org => {
+                const element = document.querySelector(`.org-item[data-id="${org.id}"]`);
+                const marker = markers[org.id];
+
+                // Check if the organization matches both filters
+                const matchesSearch = org.name.toLowerCase().includes(searchTerm) || 
+                                      org.location.toLowerCase().includes(searchTerm) ||
+                                      org.description.toLowerCase().includes(searchTerm);
+
+                let matchesCategory = false;
+                if (categoryFilter === 'all') matchesCategory = true;
+                else matchesCategory = (org.category && org.category.toString().trim() === categoryFilter);
+
+                const isVisible = matchesSearch && matchesCategory;
+
+                // Update visibility in sidebar and map
+                if (element) element.style.display = isVisible ? 'block' : 'none';
+                if (marker) isVisible ? marker.addTo(map) : marker.remove();
+            });
+
+            // Redraw connections
+            drawConnections();
+        }
+
+        // Event listeners for filters
+        document.getElementById('search-input').addEventListener('input', filterOrganizations);
+        // Load network data (from external URL if configured) and initialize the map
+        async function loadNetworkData() {
+            // Use global legacy list if present (works with file://), otherwise try module import then JSON fetch
+            if (window && Array.isArray(window.CANONICAL_CATEGORIES)) {
+                CANONICAL_CATEGORIES = window.CANONICAL_CATEGORIES.slice();
+            } else {
+                try{
+                    try{
+                        const mod = await import('./categories.js');
+                        CANONICAL_CATEGORIES = mod && (mod.default || mod.CATEGORIES) ? (mod.default || mod.CATEGORIES) : [];
+                    }catch(err){
+                        const r = await fetch('categories.json');
+                        if (r.ok) CANONICAL_CATEGORIES = await r.json();
+                    }
+                }catch(e){ /* ignore */ }
+            }
+
+            // Fetch data from the configured DATA_URL (Gist). If fetch fails, initialize empty map.
+            try {
+                const resp = await fetch(DATA_URL);
+                if (!resp.ok) throw new Error('Network response was not ok: ' + resp.status);
+                const data = await resp.json();
+                if (Array.isArray(data)) {
+                    // normalize categories using canonical list
+                    organizationsData = data.map(o => ({ ...o, category: normalizeCategory(o.category || o.type || '') }));
+                } else {
+                    console.warn('Fetched data not an array; initializing empty dataset');
+                    organizationsData = [];
+                }
+            } catch (err) {
+                console.warn('Error fetching DATA_URL, initializing empty dataset:', err);
+                organizationsData = [];
+            }
+
+            initializeMap();
+        }
+        
+        // Function to export data as JSON (for integration with other systems)
+        function exportNetworkData() {
+            return JSON.stringify(organizationsData);
+        }
+        
+        // Function to import data from JSON
+        function importNetworkData(jsonData) {
+            try {
+                const data = JSON.parse(jsonData);
+                
+                // Validate data structure (basic check)
+                if (Array.isArray(data) && data.length > 0 && data[0].hasOwnProperty('name')) {
+                    // Clear existing data
+                    document.getElementById('organization-list').innerHTML = '';
+                    connectionLines.forEach(line => map.removeLayer(line));
+                    connectionLines.length = 0;
+                    
+                    Object.values(markers).forEach(marker => marker.remove());
+                    
+                    // Replace data and redraw
+                    // Normalize categories and replace data
+                    organizationsData.length = 0;
+                    data.forEach(org => {
+                        const category = normalizeCategory(org.category || org.type || '');
+                        organizationsData.push({ ...org, category });
+                    });
+                    
+                    // Reinitialize the map
+                    initializeMap();
+                    
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error("Error importing data:", error);
+                return false;
+            }
+        }
+        
+        // Function to initialize map with current data
+        function initializeMap() {
+            // Clean up previous render (markers, sidebar, lines)
+            document.getElementById('organization-list').innerHTML = '';
+            connectionLines.forEach(line => map.removeLayer(line));
+            connectionLines.length = 0;
+            Object.values(markers).forEach(m => m.remove());
+            for (const k in markers) delete markers[k];
+
+            // Update category options and colors before creating markers
+            populateFilterOptions();
+
+            // Add markers and sidebar items for each organization
+            organizationsData.forEach(org => {
+                const marker = L.marker(org.coordinates, {
+                    icon: createMarkerIcon(org.category)
+                }).addTo(map);
+
+                const popupContent = `
+                    <div class="popup-content">
+                        <div class="popup-title">${org.name}</div>
+                        <div class="popup-description">${org.description}</div>
+                        <div class="popup-contact">
+                            <div>${org.location}</div>
+                            <div>${org.contact && org.contact.email ? org.contact.email : ''}</div>
+                            <div>${org.contact && org.contact.phone ? org.contact.phone : ''}</div>
+                        </div>
+                        <a href="${org.contact && org.contact.website ? org.contact.website : '#'}" target="_blank" class="popup-website">Visit Website</a>
+                    </div>
+                `;
+
+                marker.bindPopup(popupContent);
+                markers[org.id] = marker;
+
+                // Add to sidebar
+                const orgElement = document.createElement('div');
+                orgElement.className = 'org-item';
+                orgElement.dataset.id = org.id;
+
+                orgElement.innerHTML = `
+                    <div class="org-name">${org.name}</div>
+                    <div class="org-location">${org.location}</div>
+                    <div class="org-details">${org.category ? (org.category.charAt(0).toUpperCase() + org.category.slice(1)) : ''}</div>
+                `;
+
+                orgElement.addEventListener('click', () => {
+                    // If the same org is clicked twice, reset to initial view
+                    if (currentSelectedId === org.id) {
+                        // reset
+                        currentSelectedId = null;
+                        map.closePopup();
+                        map.setView(INITIAL_VIEW.center, INITIAL_VIEW.zoom);
+                        highlightConnections(null);
+                        closeSidebarOnMobile();
+                        return;
+                    }
+
+                    // Select this org
+                    currentSelectedId = org.id;
+                    map.setView(org.coordinates, 5);
+                    marker.openPopup();
+                    highlightConnections(org.id);
+                    closeSidebarOnMobile();
+                });
+
+                document.getElementById('organization-list').appendChild(orgElement);
+            });
+
+            // Draw connections after markers are set
+            drawConnections();
+            // Ensure marker icons reflect current theme
+            updateMarkerIcons();
+        }
+        
+        // This function can be called from outside to add a new organization
+        function addOrganization(orgData) {
+            // Generate new ID (max + 1)
+            const newId = organizationsData && organizationsData.length ? Math.max(...organizationsData.map(org => org.id)) + 1 : 1;
+
+            const newOrg = {
+                ...orgData,
+                id: newId
+            };
+
+            organizationsData.push(newOrg);
+
+            // Refresh the map to show the new organization
+            initializeMap();
+
+            return newId;
+        }
+        
+        // Make functions available globally for external access
+        window.praxiumNetwork = {
+            exportData: exportNetworkData,
+            importData: importNetworkData,
+            addOrganization: addOrganization
+        };
+
+        // Start by loading data (external or default)
+        loadNetworkData();
+    </script>
+</body>
+</html>

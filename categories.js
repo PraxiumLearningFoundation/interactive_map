@@ -1,0 +1,20 @@
+export default [
+  "Advocacy",
+  "Arts & Culture",
+  "Business",
+  "Community",
+  "Economic Development",
+  "Education",
+  "Education & Training",
+  "Environment",
+  "Government",
+  "Health",
+  "Non-Profit",
+  "Not-For-Profit",
+  "Other",
+  "Peer Support",
+  "Research",
+  "Science",
+  "Social Services",
+  "Technology"
+];

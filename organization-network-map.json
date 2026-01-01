@@ -1,0 +1,95 @@
+[
+  {
+    "id": 1,
+    "name": "The Praxium Foundation",
+    "location": "Vancouver, British Columbia, Canada",
+    "coordinates": [
+      49.2827,
+      -123.1207
+    ],
+    "category": "Not-For-Profit",
+    "description": "Praxium Learning Foundation - a not-for-profit organization that delivers programs, resources, and opportunities to promote education, spirituality, and growth within individuals and communities.",
+    "contact": {
+      "website": "https://www.praxiumfoundation.com/"
+    },
+    "connections": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Japanese American Veterans Association",
+    "location": "P.O. Box 341198, Bethesda, MD 20827",
+    "coordinates": [
+      39.0110856260022,
+      -77.16030315974014
+    ],
+    "category": "Non-Profit",
+    "description": "We are an educational, patriotic, fraternal organization dedicated to maintaining and extending the institutions of American freedom. Our members include veterans of WWII, Korea, Vietnam, and the Gulf Wars. Although the majority of our members are Americans of Japanese Ancestry, our members are not exclusively Japanese Americans. Our “Friends of JAVA” include spouses, friends, relatives, and other supporters of JAVA’s goals and objectives",
+    "contact": {
+      "website": "https://java-us.org/"
+    },
+    "connections": [
+      1,
+      3,
+      7
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Spotlight on Mental Health",
+    "location": "#200 - 520 W 6th Ave, Vancouver, BC V5Z 4H5",
+    "coordinates": [
+      49.266507583588115,
+      -123.11704266052406
+    ],
+    "category": "Support Group",
+    "description": "Spotlight on Mental Health is a peer-run resource website for people with lived/living experience of mental health and/or substance use challenges, their friends, families and supporters.",
+    "contact": {
+      "website": "https://spotlightonmentalhealth.com/"
+    },
+    "connections": [
+      1,
+      4
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Coral Mountain Wellness",
+    "location": "Vancouver, BC",
+    "coordinates": [
+      49.28212399060585,
+      -123.11635352281415
+    ],
+    "category": "Health",
+    "description": "Helping individuals build strength, improve health and have fun along the way.",
+    "contact": {
+      "website": "https://www.coralmountainwellness.ca/"
+    },
+    "connections": [
+      1,
+      3
+    ]
+  },
+  {
+    "id": 5,
+    "name": "BC Hearing Voices Network",
+    "location": "Suite 207, 1040 Shoppers Row, Campbell River, BC V9W 2C6",
+    "coordinates": [
+      50.02610991985891,
+      -125.2444081451497
+    ],
+    "category": "Health",
+    "description": "The BC Hearing Voices Network is peer-led network connecting Hearing Voices support groups – and the people and organizations that host them – in BC.",
+    "contact": {
+      "website": "https://bchvn.ca/"
+    },
+    "connections": [
+      3
+    ]
+  }
+]

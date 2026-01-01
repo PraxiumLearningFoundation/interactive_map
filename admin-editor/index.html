@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Praxium Network — Admin JSON Editor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Praxium Network — Admin JSON Editor</h1>
+    <div class="controls">
+      <input id="file-input" type="file" accept="application/json" />
+      <button id="load-sample">Load Sample (local)</button>
+      <button id="paste-json">Paste JSON</button>
+      <button id="download-json">Download JSON</button>
+      <button id="copy-json">Copy JSON</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="left">
+      <label for="json-text">JSON (edit/paste here)</label>
+      <textarea id="json-text" placeholder="Paste or load the organization JSON here"></textarea>
+      <div class="actions">
+        <button id="parse-json">Parse & Preview</button>
+        <button id="reset-data">Reset</button>
+      </div>
+    </section>
+
+    <section class="right">
+      <div id="list-container">
+        <div class="list-actions">
+          <button id="add-new">Add Organization</button>
+        </div>
+        <div id="org-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <template id="org-template">
+    <div class="org-card">
+      <div class="org-header">
+        <strong class="org-name-display"></strong>
+        <div class="card-actions">
+          <button class="edit-btn">Edit</button>
+          <button class="delete-btn">Delete</button>
+        </div>
+      </div>
+      <form class="org-form hidden">
+        <label>Name: <input name="name" required></label>
+        <label>Location: <input name="location"></label>
+        <label>Latitude: <input name="lat" type="Number" step="any"></label>
+        <label>Longitude: <input name="lng" type="Number" step="any"></label>
+        <label>Category:
+          <select name="category"></select>
+          <input name="category-custom" class="hidden" placeholder="Custom category">
+        </label>
+        <label>Description: <textarea name="description"></textarea></label>
+        <label>Website: <input name="website" type="url"></label>
+        <label>Connections (comma-separated IDs): <input name="connections"></label>
+        <div class="form-actions">
+          <button type="submit" class="save-btn">Save</button>
+          <button type="button" class="cancel-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </template>
+
+  <script src="../categories.legacy.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
