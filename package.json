@@ -6,14 +6,14 @@
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder",
-    "dist:win": "electron-builder --win",
-    "dist:mac": "electron-builder --mac",
-    "dist:linux": "electron-builder --linux"
+    "dist": "electron-builder --publish never",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:mac": "electron-builder --mac --publish never",
+    "dist:linux": "electron-builder --linux --publish never"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/PraxiumLearning03/interactive_map.git"
+    "url": "https://github.com/PraxiumLearningFoundation/interactive_map.git"
   },
   "author": "Praxium",
   "license": "MIT",
