@@ -30,23 +30,40 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build Electron app
         run: npm run dist:${{ matrix.platform }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload artifacts
+      - name: Upload Windows artifacts
+        if: matrix.platform == 'win'
         uses: actions/upload-artifact@v4
         with:
-          name: release-${{ matrix.platform }}
+          name: release-windows
           path: |
             dist/*.exe
+          if-no-files-found: ignore
+
+      - name: Upload macOS artifacts
+        if: matrix.platform == 'mac'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: |
             dist/*.dmg
+            dist/*.zip
+          if-no-files-found: ignore
+
+      - name: Upload Linux artifacts
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux
+          path: |
             dist/*.AppImage
             dist/*.deb
           if-no-files-found: ignore
@@ -55,24 +72,64 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
+    permissions:
+      contents: write
     
     steps:
-      - name: Download all artifacts
+      - name: Download Windows artifacts
         uses: actions/download-artifact@v4
         with:
+          name: release-windows
           path: artifacts
-          merge-multiple: true
+        continue-on-error: true
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-macos
+          path: artifacts
+        continue-on-error: true
+
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-linux
+          path: artifacts
+        continue-on-error: true
 
       - name: List artifacts
-        run: find artifacts -type f
+        run: ls -la artifacts/ || echo "No artifacts found"
 
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v1
+      - name: Create Release with Assets
+        uses: softprops/action-gh-release@v2
         with:
+          generate_release_notes: true
           files: |
-            artifacts/**/*.exe
-            artifacts/**/*.dmg
-            artifacts/**/*.AppImage
-            artifacts/**/*.deb
+            artifacts/*
+          body: |
+            ## 📥 Download Praxium Map Editor
+            
+            **No coding or technical setup required!** Just download and install:
+            
+            | Platform | Download | Instructions |
+            |----------|----------|--------------|
+            | 🪟 **Windows** | `.exe` installer | Double-click to install, then find "Praxium Map Editor" in Start Menu |
+            | 🪟 **Windows Portable** | `Portable.exe` | No install needed - just double-click to run |
+            | 🍎 **macOS** | `.dmg` | Open the DMG, drag app to Applications folder |
+            | 🐧 **Linux** | `.AppImage` | Make executable (`chmod +x`) and double-click |
+            | 🐧 **Linux (Debian/Ubuntu)** | `.deb` | Double-click or run `sudo dpkg -i filename.deb` |
+            
+            ---
+            
+            ### ✨ What is this?
+            
+            Praxium Map Editor is a desktop app that lets you edit the organization data for the Praxium Interactive Network Map - no coding required!
+            
+            ### 🚀 Quick Start
+            1. Download the file for your operating system above
+            2. Install/run the application
+            3. Use **File → Open** to load your JSON data
+            4. Edit organizations using the visual editor
+            5. Use **File → Save** to export your changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
