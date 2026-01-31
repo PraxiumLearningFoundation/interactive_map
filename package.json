@@ -15,7 +15,10 @@
     "type": "git",
     "url": "https://github.com/PraxiumLearningFoundation/interactive_map.git"
   },
-  "author": "Praxium",
+  "author": {
+    "name": "Praxium Learning Foundation",
+    "email": "info@praxiumfoundation.com"
+  },
   "license": "MIT",
   "devDependencies": {
     "electron": "^28.0.0",
