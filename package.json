@@ -1,0 +1,71 @@
+{
+  "name": "praxium-map-editor",
+  "version": "1.0.0",
+  "description": "Desktop application for editing the Praxium Interactive Network Map data",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PraxiumLearning03/interactive_map.git"
+  },
+  "author": "Praxium",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.praxium.mapeditor",
+    "productName": "Praxium Map Editor",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "admin-editor/**/*",
+      "electron/**/*",
+      "categories.json",
+      "categories.legacy.js",
+      "organization-network-map.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "electron/icons/icon.ico",
+      "artifactName": "${productName}-${version}-Windows.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-Windows-Portable.${ext}"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "electron/icons/icon.icns",
+      "artifactName": "${productName}-${version}-macOS.${ext}"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "electron/icons",
+      "artifactName": "${productName}-${version}-Linux.${ext}",
+      "category": "Utility"
+    }
+  }
+}

@@ -116,4 +116,68 @@ If you want, I can:
 - Add a tiny server-side helper (GitHub Action) to update a Gist from the admin editor output.
 
 ---
+
+## Desktop Application (Electron)
+
+The admin editor can be packaged as a standalone desktop application using Electron.
+
+### Download Pre-built Releases
+
+**No installation of Node.js or Python required!**
+
+Download the latest release for your platform from the [Releases page](https://github.com/PraxiumLearning03/interactive_map/releases):
+
+| Platform | Download |
+|----------|----------|
+| Windows | `Praxium-Map-Editor-x.x.x-Windows.exe` (installer) or `...-Portable.exe` |
+| macOS | `Praxium-Map-Editor-x.x.x-macOS.dmg` |
+| Linux | `Praxium-Map-Editor-x.x.x-Linux.AppImage` or `.deb` |
+
+### For Developers
+
+If you want to run from source or build locally:
+
+```bash
+# Install dependencies
+npm install
+
+# Run the desktop app in development mode
+npm start
+```
+
+### Building Installers Locally
+
+```bash
+# Build for current platform
+npm run dist
+
+# Build for specific platforms
+npm run dist:win    # Windows (.exe installer)
+npm run dist:mac    # macOS (.dmg)
+npm run dist:linux  # Linux (.AppImage)
+```
+
+Built packages will be output to the `dist/` folder.
+
+### Desktop App Features
+
+- Native file dialogs for opening/saving JSON files
+- Menu bar with keyboard shortcuts (Ctrl+O, Ctrl+S, etc.)
+- Load sample data from bundled file
+- Cross-platform support (Windows, macOS, Linux)
+
+### Creating a New Release
+
+1. Update the version in `package.json`
+2. Commit your changes
+3. Create and push a tag:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+4. GitHub Actions will automatically build and attach installers to the release
+
+See [electron/README.md](electron/README.md) for more details.
+
+---
 README generated on December 27, 2025.

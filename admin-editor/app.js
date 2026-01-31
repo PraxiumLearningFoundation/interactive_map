@@ -7,6 +7,10 @@ const orgList = document.getElementById('org-list');
 const template = document.getElementById('org-template');
 let CANONICAL_CATEGORIES = [];
 
+// Track if running in Electron
+const isElectron = window.electronAPI && window.electronAPI.isElectron;
+let currentFilePath = null;
+
 function escapeHtml(str){
   if (!str) return '';
   return String(str)
@@ -169,10 +173,25 @@ document.getElementById('copy-json').addEventListener('click', async ()=>{
   catch(err){ alert('Copy failed: ' + err.message); }
 });
 
-document.getElementById('download-json').addEventListener('click', ()=>{
-  const blob = new Blob([jsonText.value], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'organization-network-map.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+document.getElementById('download-json').addEventListener('click', async ()=>{
+  if (isElectron) {
+    // Use Electron's save dialog
+    const result = await window.electronAPI.showSaveDialog();
+    if (!result.canceled && result.filePath) {
+      const saveResult = await window.electronAPI.saveFile(result.filePath, jsonText.value);
+      if (saveResult.success) {
+        currentFilePath = result.filePath;
+        await window.electronAPI.showMessage('info', 'Saved', 'JSON file saved successfully.');
+      } else {
+        await window.electronAPI.showMessage('error', 'Error', 'Failed to save: ' + saveResult.error);
+      }
+    }
+  } else {
+    // Browser download
+    const blob = new Blob([jsonText.value], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'organization-network-map.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
 });
 
 // Load file input
@@ -195,22 +214,54 @@ document.getElementById('paste-json').addEventListener('click', async ()=>{
 // Initialize with existing local file if available
 (async function init(){
   try{
-    // Use global legacy list if present (works with file://)
-      if (window && Array.isArray(window.CANONICAL_CATEGORIES)) {
-        CANONICAL_CATEGORIES = window.CANONICAL_CATEGORIES.slice();
-      } else {
+    // Use Electron API for categories if available
+    if (isElectron && window.electronAPI.readCategories) {
+      try {
+        const cats = await window.electronAPI.readCategories();
+        if (Array.isArray(cats) && cats.length) CANONICAL_CATEGORIES = cats;
+      } catch (e) { /* fallback below */ }
+    }
+    
+    // Fallback: Use global legacy list if present (works with file://)
+    if (!CANONICAL_CATEGORIES.length && window && Array.isArray(window.CANONICAL_CATEGORIES)) {
+      CANONICAL_CATEGORIES = window.CANONICAL_CATEGORIES.slice();
+    }
+    
+    if (!CANONICAL_CATEGORIES.length) {
+      try{
+        const mod = await import('../categories.js');
+        CANONICAL_CATEGORIES = mod && (mod.default || mod.CATEGORIES) ? (mod.default || mod.CATEGORIES) : [];
+      }catch(err){
         try{
-          const mod = await import('../categories.js');
-          CANONICAL_CATEGORIES = mod && (mod.default || mod.CATEGORIES) ? (mod.default || mod.CATEGORIES) : [];
-        }catch(err){
-          try{
-            const r = await fetch('../categories.json');
-            if (r.ok) CANONICAL_CATEGORIES = await r.json();
-          }catch(e){ /* ignore */ }
-        }
+          const r = await fetch('../categories.json');
+          if (r.ok) CANONICAL_CATEGORIES = await r.json();
+        }catch(e){ /* ignore */ }
+      }
     }
 
-    const resp = await fetch('../organization-network-map.json');
-    if (resp.ok){ const txt = await resp.text(); jsonText.value = txt; parseTextarea(); }
+    // Don't auto-load in Electron (menu handles file loading)
+    if (!isElectron) {
+      const resp = await fetch('../organization-network-map.json');
+      if (resp.ok){ const txt = await resp.text(); jsonText.value = txt; parseTextarea(); }
+    }
   }catch(e){}
+  
+  // Set up Electron IPC listeners
+  if (isElectron) {
+    window.electronAPI.onFileOpened(({ content, filePath }) => {
+      currentFilePath = filePath;
+      jsonText.value = content;
+      parseTextarea();
+    });
+    
+    window.electronAPI.onRequestSave(async ({ filePath }) => {
+      const result = await window.electronAPI.saveFile(filePath, jsonText.value);
+      if (result.success) {
+        currentFilePath = filePath;
+        await window.electronAPI.showMessage('info', 'Saved', 'JSON file saved successfully.');
+      } else {
+        await window.electronAPI.showMessage('error', 'Error', 'Failed to save: ' + result.error);
+      }
+    });
+  }
 })();
