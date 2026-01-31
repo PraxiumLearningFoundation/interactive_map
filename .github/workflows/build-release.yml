@@ -22,7 +22,7 @@ jobs:
             platform: mac
 
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30  # Increase timeout for Electron builds
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
@@ -32,23 +32,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
-      - name: Cache Electron
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/AppData/Local/electron/Cache
-            ~/.cache/electron
-            ~/Library/Caches/electron
-          key: electron-cache-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            electron-cache-${{ runner.os }}-
+      # Windows-specific: Clean any existing node_modules to avoid EPERM errors
+      - name: Clean node_modules (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          if (Test-Path node_modules) { Remove-Item -Recurse -Force node_modules }
+        shell: pwsh
 
       - name: Install dependencies
         run: npm ci
         env:
-          ELECTRON_CACHE: ${{ runner.os == 'Windows' && '~/AppData/Local/electron/Cache' || '~/.cache/electron' }}
+          ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
 
       - name: Build Electron app
         run: npm run dist:${{ matrix.platform }}
