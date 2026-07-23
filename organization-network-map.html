@@ -25,6 +25,47 @@
             flex: 1;
             height: 100%;
         }
+
+        #data-status-banner {
+            display: none;
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            max-width: 90%;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            align-items: center;
+            gap: 10px;
+        }
+
+        #data-status-banner.visible {
+            display: flex;
+        }
+
+        #data-status-banner.warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        #data-status-banner.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        #data-status-banner button {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            color: inherit;
+        }
         
         #sidebar {
             width: 300px;
@@ -577,7 +618,12 @@
             </div>
         </div>
         
-        <div id="map"></div>
+        <div id="map">
+            <div id="data-status-banner" role="status">
+                <span id="data-status-message"></span>
+                <button id="data-status-dismiss" aria-label="Dismiss">✕</button>
+            </div>
+        </div>
         
         <div id="legend">
             <h4 style="margin-top: 0; margin-bottom: 8px;">Categories</h4>
@@ -609,7 +655,10 @@
     <script>
         // Data source configuration
         // Set `DATA_URL` to the provided Gist raw JSON URL.
-        const DATA_URL = 'https://gist.githubusercontent.com/PraxiumLearning03/a139fdb216bcc3e91b67754c283f3805/raw/f28f5077bbf6bf9b967e4efe258de08b4f404d4b/organization-network-map.json';
+        // Uses the stable "latest" raw URL (no revision hash) so future Gist edits
+        // are picked up automatically without needing to update this constant.
+        const DATA_URL = 'https://gist.githubusercontent.com/PraxiumLearning03/a139fdb216bcc3e91b67754c283f3805/raw/organization-network-map.json';
+        const DATA_CACHE_KEY = 'praxium-map-cache-v1';
 
         // Shared canonical categories (loaded from categories.json)
         let CANONICAL_CATEGORIES = [];
@@ -988,7 +1037,9 @@
                 }catch(e){ /* ignore */ }
             }
 
-            // Fetch data from the configured DATA_URL (Gist). If fetch fails, initialize empty map.
+            // Fetch data from the configured DATA_URL (Gist). On failure, fall back to the
+            // last successfully fetched copy (cached in localStorage) and show a status banner
+            // so an embedded/unattended map never silently renders blank with no explanation.
             try {
                 const resp = await fetch(DATA_URL);
                 if (!resp.ok) throw new Error('Network response was not ok: ' + resp.status);
@@ -996,16 +1047,47 @@
                 if (Array.isArray(data)) {
                     // normalize categories using canonical list
                     organizationsData = data.map(o => ({ ...o, category: normalizeCategory(o.category || o.type || '') }));
+                    try {
+                        localStorage.setItem(DATA_CACHE_KEY, JSON.stringify({ data, fetchedAt: Date.now() }));
+                    } catch (storageErr) { /* localStorage unavailable/full; not critical */ }
+                    hideDataStatusBanner();
                 } else {
-                    console.warn('Fetched data not an array; initializing empty dataset');
-                    organizationsData = [];
+                    throw new Error('Fetched data is not an array');
                 }
             } catch (err) {
-                console.warn('Error fetching DATA_URL, initializing empty dataset:', err);
-                organizationsData = [];
+                console.warn('Error fetching DATA_URL:', err);
+                let cached = null;
+                try {
+                    const raw = localStorage.getItem(DATA_CACHE_KEY);
+                    if (raw) cached = JSON.parse(raw);
+                } catch (storageErr) { /* ignore corrupt cache */ }
+
+                if (cached && Array.isArray(cached.data)) {
+                    organizationsData = cached.data.map(o => ({ ...o, category: normalizeCategory(o.category || o.type || '') }));
+                    const cachedDate = new Date(cached.fetchedAt).toLocaleString();
+                    showDataStatusBanner('warning', `Showing last saved data from ${cachedDate} — live data unavailable.`);
+                } else {
+                    organizationsData = [];
+                    showDataStatusBanner('error', 'Unable to load organization data. Please try again later.');
+                }
             }
 
             initializeMap();
+        }
+
+        // Shows a dismissible status banner over the map (used for stale-cache/error states).
+        function showDataStatusBanner(kind, message) {
+            const banner = document.getElementById('data-status-banner');
+            const messageEl = document.getElementById('data-status-message');
+            if (!banner || !messageEl) return;
+            messageEl.textContent = message;
+            banner.classList.remove('warning', 'error');
+            banner.classList.add(kind, 'visible');
+        }
+
+        function hideDataStatusBanner() {
+            const banner = document.getElementById('data-status-banner');
+            if (banner) banner.classList.remove('visible');
         }
         
         // Function to export data as JSON (for integration with other systems)
@@ -1145,6 +1227,12 @@
             importData: importNetworkData,
             addOrganization: addOrganization
         };
+
+        // Dismiss button for the data status banner
+        const dataStatusDismissBtn = document.getElementById('data-status-dismiss');
+        if (dataStatusDismissBtn) {
+            dataStatusDismissBtn.addEventListener('click', hideDataStatusBanner);
+        }
 
         // Start by loading data (external or default)
         loadNetworkData();
