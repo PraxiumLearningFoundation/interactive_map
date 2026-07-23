@@ -1,0 +1,121 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+  background: #f4f5f7;
+  color: #1f2937;
+}
+
+/* --- Login page --- */
+.login-body {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.login-card {
+  background: white;
+  padding: 32px;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  width: 320px;
+}
+.login-card h1 { font-size: 20px; margin: 0 0 4px; }
+.login-card .subtitle { margin: 0 0 20px; color: #6b7280; font-size: 14px; }
+.login-card form { display: flex; flex-direction: column; gap: 8px; }
+.login-card label { font-size: 13px; font-weight: 600; }
+.login-card input { padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+.login-card button { margin-top: 8px; padding: 10px; border: none; border-radius: 6px; background: #2563eb; color: white; font-weight: 600; cursor: pointer; }
+.login-card button:hover { background: #1d4ed8; }
+
+/* --- Dashboard --- */
+#admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 24px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+#admin-header h1 { font-size: 18px; margin: 0; }
+#header-status { display: flex; align-items: center; gap: 16px; font-size: 13px; color: #6b7280; }
+#logout-btn { padding: 6px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; cursor: pointer; }
+
+#admin-banner {
+  margin: 12px 24px 0;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+#admin-banner.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+#admin-banner.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+
+#admin-main {
+  display: flex;
+  gap: 20px;
+  padding: 20px 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+#org-list-panel { flex: 1; min-width: 0; }
+#org-list-controls { display: flex; gap: 10px; margin-bottom: 12px; }
+#org-search { flex: 1; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; }
+#add-org-btn { padding: 8px 14px; border: none; border-radius: 6px; background: #2563eb; color: white; cursor: pointer; white-space: nowrap; }
+
+#org-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.org-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+.org-card-main { display: flex; flex-direction: column; }
+.org-card-category { font-size: 12px; color: #6b7280; }
+.org-card .edit-link { border: none; background: none; color: #2563eb; cursor: pointer; font-weight: 600; }
+
+#org-form-panel { flex: 1.4; min-width: 0; background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; }
+#org-form { display: flex; flex-direction: column; gap: 6px; }
+#org-form label { font-size: 13px; font-weight: 600; margin-top: 8px; }
+#org-form input, #org-form select, #org-form textarea {
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  width: 100%;
+}
+.inline-field { display: flex; gap: 8px; }
+.inline-field input { flex: 1; }
+.inline-field button { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: #f9fafb; cursor: pointer; white-space: nowrap; }
+.field-hint { font-size: 12px; color: #6b7280; margin: 2px 0 0; }
+
+.coord-row { display: flex; gap: 10px; }
+.coord-row > div { flex: 1; }
+
+#preview-map { height: 200px; border-radius: 6px; margin-top: 8px; }
+
+.form-actions { display: flex; gap: 10px; margin-top: 16px; }
+.form-actions button { padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+#save-btn { background: #2563eb; color: white; }
+#save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+#cancel-btn { background: #f3f4f6; color: #1f2937; border: 1px solid #d1d5db; }
+.form-actions .danger { margin-left: auto; background: #fff; color: #dc2626; border: 1px solid #dc2626; }
+
+.error-message {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+@media (max-width: 720px) {
+  #admin-main { flex-direction: column; }
+}

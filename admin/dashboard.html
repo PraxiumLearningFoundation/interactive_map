@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Praxium Network Map — Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <header id="admin-header">
+    <h1>Praxium Network Map — Admin</h1>
+    <div id="header-status">
+      <span id="last-updated"></span>
+      <button id="logout-btn" type="button">Log out</button>
+    </div>
+  </header>
+
+  <div id="admin-banner" role="status" hidden></div>
+
+  <main id="admin-main">
+    <section id="org-list-panel">
+      <div id="org-list-controls">
+        <input type="text" id="org-search" placeholder="Search organizations...">
+        <button id="add-org-btn" type="button">+ Add Organization</button>
+      </div>
+      <ul id="org-list"></ul>
+    </section>
+
+    <section id="org-form-panel" hidden>
+      <h2 id="form-title">Add Organization</h2>
+      <form id="org-form">
+        <input type="hidden" id="org-id" value="">
+
+        <label for="org-name">Organization Name *</label>
+        <input type="text" id="org-name" required>
+
+        <label for="org-website">Website *</label>
+        <input type="url" id="org-website" placeholder="https://example.org" required>
+
+        <label for="org-email">Email</label>
+        <input type="email" id="org-email">
+
+        <label for="org-phone">Phone</label>
+        <input type="tel" id="org-phone">
+
+        <label for="org-location">Address / Location *</label>
+        <div class="inline-field">
+          <input type="text" id="org-location" required>
+          <button type="button" id="geocode-btn">Look up coordinates</button>
+        </div>
+        <p id="geocode-status" class="field-hint"></p>
+
+        <div class="coord-row">
+          <div>
+            <label for="org-lat">Latitude *</label>
+            <input type="number" step="any" id="org-lat" required>
+          </div>
+          <div>
+            <label for="org-lng">Longitude *</label>
+            <input type="number" step="any" id="org-lng" required>
+          </div>
+        </div>
+        <div id="preview-map"></div>
+
+        <label for="org-category">Category *</label>
+        <select id="org-category" required></select>
+        <div id="custom-category-wrap" class="inline-field" hidden>
+          <input type="text" id="org-category-custom" placeholder="Enter a one-off category name">
+        </div>
+
+        <label for="org-description">Description *</label>
+        <textarea id="org-description" rows="4" maxlength="500" required></textarea>
+        <p class="field-hint"><span id="description-count">0</span>/500</p>
+
+        <label for="org-connections">Connected To</label>
+        <select id="org-connections" multiple size="6"></select>
+        <p class="field-hint">Hold Ctrl/Cmd to select multiple. Linking is automatically two-way.</p>
+
+        <p id="form-error" class="error-message" role="alert" hidden></p>
+
+        <div class="form-actions">
+          <button type="submit" id="save-btn">Publish</button>
+          <button type="button" id="cancel-btn">Cancel</button>
+          <button type="button" id="delete-btn" class="danger" hidden>Delete Organization</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

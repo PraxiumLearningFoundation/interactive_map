@@ -11,12 +11,15 @@ This repository contains a small, static front-end interactive map (Leaflet) tha
 - `organization-network-map.html` — Primary embeddable interactive map page. Loads data from `DATA_URL` (configurable in the file) and renders markers, connections, legend, and filters. Supports light/dark tile layers and a programmatic API (`window.praxiumNetwork`).
 - `organization-network-map.json` — Example/sample dataset (array of organization objects).
 - `organization-map.html` — Alternate map layout (if present); similar behavior and data loading.
-- `admin-editor/` — Small static admin UI to edit, paste, load, and export the JSON dataset.
+- `admin-editor/` — Small static admin UI to edit, paste, load, and export the JSON dataset (offline/bulk-edit path — see "Admin workflow" below).
   - `admin-editor/index.html` — Admin UI page.
   - `admin-editor/app.js` — Editor logic: parsing, edit/add/delete, copy/download JSON.
   - `admin-editor/styles.css` — Editor styling.
   - `admin-editor/README.md` — Quick local instructions for admin editor.
-- `categories.json` — Canonical categories list used by the admin editor and map to keep category names consistent and ordered.
+- `admin/` — Web-based board admin (recommended path): passphrase login, add/edit/delete organization form with geocoding, publishes straight to the Gist. Deployed as its own Vercel project — see "Board publishing admin (Vercel)" below.
+- `api/` — Vercel serverless functions backing `admin/`: `auth.js`, `gist.js`, `geocode.js`, `publish.js`, `logout.js`, plus shared helpers in `api/_lib/`.
+- `test/api.test.js` — Functional tests for the `/api` functions against an in-memory fake Gist (run with `node test/api.test.js`; also runs in CI).
+- `categories.json` — Canonical categories list used by the admin editor, the web admin, and the map to keep category names consistent and ordered. `categories.js` / `categories.legacy.js` are auto-generated from it.
 
 
 Getting started (local testing)
@@ -45,21 +48,46 @@ http-server -p 8000
 
 Admin workflow (update data)
 
-There are two main ways to update the dataset the map uses:
+There are three ways to update the dataset the map uses, in order of recommendation:
 
-A) Manual Gist / hosted file update (recommended for production)
-- Host the JSON file (for example: a GitHub Gist or GitHub Pages, Netlify, or any static host) and set the `DATA_URL` constant at the top of `organization-network-map.html` to the raw URL of that JSON.
-- Update the hosted JSON when you need to change the dataset.
-- Note: If you use GitHub raw URLs, some browsers will block cross-origin requests — using GitHub Pages, Netlify, or another host that sets appropriate CORS headers is recommended.
+A) Web admin (recommended for routine, single-organization edits)
+- A board member goes to the deployed `/admin` page (see "Board publishing admin (Vercel)" below), logs in with the shared passphrase, and uses a simple form (name, website, address, category, description, contact, connections) to add, edit, or delete an organization.
+- The address is automatically geocoded to a map pin (editable/draggable if the match is off).
+- No JSON, no GitHub UI — the board member just clicks Publish and the change goes live on the map within moments.
 
-B) Admin editor (generate/prepare JSON locally)
-- Open `admin-editor/index.html`, paste or load your dataset into the left textarea, click `Parse & Preview`.
+B) Electron desktop admin editor (offline use or bulk edits)
+- Open `admin-editor/index.html` (or the packaged desktop app — see "Desktop Application" below), paste or load your dataset, click `Parse & Preview`.
 - Use the editor UI to Add/Edit/Delete organizations. When finished, use `Copy JSON` or `Download JSON` to get the updated JSON.
-- Paste or upload the exported JSON to your hosted location (Gist/Pages) used by `DATA_URL`.
+- Paste or upload the exported JSON to your hosted Gist. Useful when you're offline, or doing a large batch of edits where going through the web admin's geocoding/publish round-trip per organization would be slow.
+
+C) Manual Gist edit (emergency fallback)
+- Edit the Gist's JSON directly at gist.github.com. `DATA_URL` in `organization-network-map.html` points at the Gist's stable "latest" raw URL, so any edit saved there appears on the map automatically (no need to update `DATA_URL` again).
 
 Notes on categories
 - `categories.json` defines the canonical category list used by the admin editor and the map. The admin editor pre-selects canonical categories and supports a `Custom...` option for one-off values.
 - The map reads this file (when available) to order the legend and filter options and to assign the 20-color palette deterministically.
+- `categories.js` and `categories.legacy.js` are auto-generated from `categories.json` — don't hand-edit them, regenerate them from `categories.json` instead.
+
+Board publishing admin (Vercel)
+
+The `/admin` page and its backing `/api` functions are a separate deployment from the public map (the map keeps its existing hosting/URL unchanged). Deploy this repo as its own Vercel project to get a working board admin.
+
+Setup:
+1. In the Vercel dashboard, import this GitHub repo as a new project. Vercel auto-detects the `/api/*.js` files as serverless functions and serves `/admin/*` as static files; `vercel.json` at the repo root disables the install step (the functions use only Node built-ins, no dependencies) and redirects `/` to `/admin`.
+2. Set these Environment Variables on the Vercel project (Project Settings → Environment Variables), scoped to Production (and Preview if you want PR preview deployments to work):
+   - `GITHUB_PAT` — a GitHub personal access token scoped to **gist read/write only** (fine-grained token, gist scope), used to read and update the Gist. Never commit this token or put it in client-side code.
+   - `GIST_ID` — the Gist's ID, e.g. `a139fdb216bcc3e91b67754c283f3805`.
+   - `ADMIN_PASSPHRASE` — the shared passphrase board members use to log in to `/admin`.
+   - `SESSION_SECRET` — a random 32+ byte string used to sign the admin session cookie (e.g. `openssl rand -hex 32`). Keep this distinct from the passphrase.
+3. Deploy. Visit `https://<your-vercel-project>.vercel.app/admin`, log in with the passphrase, and confirm the organization list loads from the Gist.
+
+How it works:
+- `/api/auth` checks the passphrase (rate-limited) and issues a short-lived, signed, `HttpOnly` session cookie — no per-user accounts.
+- `/api/gist` (session required) reads the current Gist contents plus `categories.json`, to populate the admin's org list and category dropdown.
+- `/api/geocode` (session required) proxies address lookups to OpenStreetMap Nominatim server-side, so the browser never calls Nominatim directly.
+- `/api/publish` (session required) re-fetches the Gist fresh, checks the client's `expectedVersion` against it (returns `409` if the Gist changed since the client last loaded it — reload and reapply rather than risk overwriting a concurrent edit), validates the submitted organization, applies create/update/delete (including keeping `connections` symmetric between linked organizations, and stripping a deleted organization's ID out of every other organization's `connections`), and writes the result back to the Gist.
+- The `GITHUB_PAT` and `SESSION_SECRET` never leave the server — they're read from environment variables inside the `/api` functions and are never sent in any response to the browser.
+- Run `node test/api.test.js` to exercise the publish/auth/gist logic against an in-memory fake Gist (no real GitHub calls, safe to run anytime); this also runs in CI on every push/PR.
 
 Embedding on Squarespace (or other website builders)
 
@@ -105,15 +133,9 @@ Troubleshooting
 
 Contributing / Extending
 
-- To change the canonical categories, edit `categories.json`. Both the admin editor and the map will read it and use the updated list when loaded.
+- To change the canonical categories, edit `categories.json`. The admin editor, the web admin, and the map will all read it and use the updated list when loaded (regenerate `categories.js`/`categories.legacy.js` from it — see "Notes on categories" above).
 - To change the color palette, edit the `COLOR_PALETTE` array in `organization-network-map.html`.
-- To add server-side publishing (automatic Gist updates), implement a simple server or GitHub Action to commit/replace the hosted JSON after admin edits.
-
-Contact / Next steps
-
-If you want, I can:
-- Add an automatic mapping layer to canonicalize common legacy category variants during import.
-- Add a tiny server-side helper (GitHub Action) to update a Gist from the admin editor output.
+- Server-side publishing (automatic Gist updates from the board admin) is implemented — see "Board publishing admin (Vercel)" above.
 
 ---
 
