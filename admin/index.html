@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Praxium Network Map — Admin Login</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body class="login-body">
+  <main class="login-card">
+    <h1>Praxium Network Map</h1>
+    <p class="subtitle">Board member admin</p>
+    <form id="login-form">
+      <label for="passphrase">Passphrase</label>
+      <input type="password" id="passphrase" name="passphrase" autocomplete="current-password" required autofocus>
+      <button type="submit">Log in</button>
+      <p id="login-error" class="error-message" role="alert" hidden></p>
+    </form>
+  </main>
+  <script src="admin-auth.js"></script>
+</body>
+</html>

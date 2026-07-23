@@ -41,3 +41,18 @@ jobs:
         run: |
           node --check categories.legacy.js
           node -e "JSON.parse(require('fs').readFileSync('categories.json', 'utf8'))"
+
+      - name: Check api/ function syntax
+        run: |
+          for f in api/*.js api/_lib/*.js; do
+            echo "Checking $f"
+            node --check "$f"
+          done
+
+      - name: Check admin/ front-end syntax
+        run: |
+          node --check admin/admin.js
+          node --check admin/admin-auth.js
+
+      - name: Run api/ unit tests (mocked Gist backend)
+        run: node test/api.test.js

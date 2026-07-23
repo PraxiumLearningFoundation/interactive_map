@@ -1,0 +1,7 @@
+{
+  "installCommand": "echo 'no install needed (zero-dependency Node functions)'",
+  "redirects": [
+    { "source": "/", "destination": "/admin", "permanent": false }
+  ],
+  "cleanUrls": true
+}
