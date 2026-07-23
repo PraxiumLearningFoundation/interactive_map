@@ -1022,19 +1022,18 @@
         document.getElementById('search-input').addEventListener('input', filterOrganizations);
         // Load network data (from external URL if configured) and initialize the map
         async function loadNetworkData() {
-            // Use global legacy list if present (works with file://), otherwise try module import then JSON fetch
-            if (window && Array.isArray(window.CANONICAL_CATEGORIES)) {
-                CANONICAL_CATEGORIES = window.CANONICAL_CATEGORIES.slice();
-            } else {
-                try{
-                    try{
-                        const mod = await import('./categories.js');
-                        CANONICAL_CATEGORIES = mod && (mod.default || mod.CATEGORIES) ? (mod.default || mod.CATEGORIES) : [];
-                    }catch(err){
-                        const r = await fetch('categories.json');
-                        if (r.ok) CANONICAL_CATEGORIES = await r.json();
-                    }
-                }catch(e){ /* ignore */ }
+            // categories.json is the source of truth. Fetch it first; only fall back to the
+            // file://-friendly window.CANONICAL_CATEGORIES (from categories.legacy.js) if the
+            // fetch fails (e.g. the page was opened directly from disk rather than served).
+            try {
+                const r = await fetch('categories.json');
+                if (r.ok) CANONICAL_CATEGORIES = await r.json();
+            } catch (e) { /* fall through to legacy fallback below */ }
+
+            if (!Array.isArray(CANONICAL_CATEGORIES) || !CANONICAL_CATEGORIES.length) {
+                if (window && Array.isArray(window.CANONICAL_CATEGORIES)) {
+                    CANONICAL_CATEGORIES = window.CANONICAL_CATEGORIES.slice();
+                }
             }
 
             // Fetch data from the configured DATA_URL (Gist). On failure, fall back to the
