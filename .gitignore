@@ -30,6 +30,12 @@ wheels/
 .env
 .env.local
 
+# Credentials / secrets — never commit these
+.gitToken.txt
+.recovery-codes.txt
+*.pem
+*.key
+
 # IDE
 .vscode/
 .idea/
