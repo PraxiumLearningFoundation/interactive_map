@@ -14,7 +14,7 @@ form.addEventListener('submit', async (e) => {
     });
     const data = await resp.json();
     if (resp.ok && data.ok) {
-      window.location.href = 'dashboard.html';
+      window.location.href = '/admin/dashboard.html';
       return;
     }
     if (resp.status === 429) {

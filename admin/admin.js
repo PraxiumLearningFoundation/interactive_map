@@ -35,7 +35,7 @@ function hideFormError() {
 async function loadData() {
   const resp = await fetch('/api/gist', { credentials: 'same-origin' });
   if (resp.status === 401) {
-    window.location.href = 'index.html';
+    window.location.href = '/admin/index.html';
     return;
   }
   if (!resp.ok) {
@@ -210,7 +210,7 @@ document.getElementById('geocode-btn').addEventListener('click', async () => {
       body: JSON.stringify({ address }),
     });
     if (resp.status === 401) {
-      window.location.href = 'index.html';
+      window.location.href = '/admin/index.html';
       return;
     }
     if (resp.status === 404) {
@@ -242,7 +242,7 @@ document.getElementById('delete-btn').addEventListener('click', async () => {
       body: JSON.stringify({ mode: 'delete', orgId: editingOrgId, expectedVersion: currentVersion }),
     });
     const data = await resp.json();
-    if (resp.status === 401) { window.location.href = 'index.html'; return; }
+    if (resp.status === 401) { window.location.href = '/admin/index.html'; return; }
     if (resp.status === 409) {
       showFormError(data.message + ' Reloading current data…');
       await loadData();
@@ -262,7 +262,7 @@ document.getElementById('delete-btn').addEventListener('click', async () => {
 
 document.getElementById('logout-btn').addEventListener('click', async () => {
   await fetch('/api/logout', { method: 'POST' });
-  window.location.href = 'index.html';
+  window.location.href = '/admin/index.html';
 });
 
 form.addEventListener('submit', async (e) => {
@@ -308,7 +308,7 @@ form.addEventListener('submit', async (e) => {
     });
     const data = await resp.json();
 
-    if (resp.status === 401) { window.location.href = 'index.html'; return; }
+    if (resp.status === 401) { window.location.href = '/admin/index.html'; return; }
 
     if (resp.status === 409) {
       showFormError(data.message);
