@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate JSON files
+        run: |
+          for f in $(find . -name "*.json" -not -path "./node_modules/*" -not -path "./.git/*"); do
+            echo "Checking $f"
+            node -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))"
+          done
+
+      - name: Check inline script syntax in organization-network-map.html
+        run: |
+          node -e "
+          const fs = require('fs');
+          const html = fs.readFileSync('organization-network-map.html', 'utf8');
+          const match = html.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/);
+          if (!match) { console.error('Could not find inline script block'); process.exit(1); }
+          new Function(match[1]);
+          console.log('Inline script syntax OK');
+          "
+
+      - name: Check admin-editor/app.js syntax
+        run: node --check admin-editor/app.js
+
+      - name: Check categories.js / categories.legacy.js syntax
+        run: |
+          node --check categories.legacy.js
+          node -e "JSON.parse(require('fs').readFileSync('categories.json', 'utf8'))"
