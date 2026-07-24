@@ -102,6 +102,18 @@ Embedding on Squarespace (or other website builders)
 
 - Recommended: host the files (HTML, categories.json, JSON data) somewhere reliable (GitHub Pages or similar) and embed via iframe in Squarespace.
 
+GitHub Pages hosting (built in)
+
+- `.github/workflows/static.yml` automatically publishes the map to GitHub Pages on every push to `main` that touches `organization-network-map.html`, `categories.json`, or `categories.legacy.js`.
+- It only publishes those three files — **not** the whole repo — so `/admin` and `/api` (which have no backend to run on static Pages anyway) are never exposed there.
+- Once enabled (Settings → Pages → Source: GitHub Actions, already configured for this repo), the map is live at:
+
+```
+https://praxiumlearningfoundation.github.io/interactive_map/organization-network-map.html
+```
+
+- Use that URL directly in the iframe example above as another hosting option alongside wherever the map is already embedded.
+
 Developer notes
 
 - DATA_URL: The map page looks for a `DATA_URL` constant near the top of `organization-network-map.html`. Set that to the raw JSON URL of your hosted dataset.

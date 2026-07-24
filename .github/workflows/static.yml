@@ -1,0 +1,61 @@
+# Publishes the public map page to GitHub Pages — a second embeddable hosting
+# option alongside wherever the map is already hosted. Only the files the map
+# actually needs (organization-network-map.html, categories.json,
+# categories.legacy.js) are published — NOT the whole repo, since that would
+# also publish /admin (a login page with no backend on static Pages) and the
+# /api function source as world-readable static files.
+name: Deploy public map to Pages
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "organization-network-map.html"
+      - "categories.json"
+      - "categories.legacy.js"
+      - ".github/workflows/static.yml"
+
+  # Allows running this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run
+# in-progress and latest queued. Do NOT cancel in-progress runs so a
+# production deployment always completes.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Stage only the public map files
+        run: |
+          mkdir -p _site
+          cp organization-network-map.html _site/
+          cp categories.json _site/
+          cp categories.legacy.js _site/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "_site"
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
