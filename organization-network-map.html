@@ -435,8 +435,9 @@
 
             #map-container {
                 flex-direction: column;
-                height: 100vh;
-                height: 100dvh; /* Dynamic viewport height for mobile browsers */
+                /* Keep the map useful without filling the entire Squarespace page. */
+                height: clamp(300px, 62svh, 520px);
+                min-height: 0;
             }
 
             #sidebar {
@@ -474,7 +475,7 @@
             }
 
             #map {
-                flex: 1;
+                flex: 1 1 auto;
                 height: 100%;
                 width: 100%;
             }
@@ -671,6 +672,11 @@
         // Initialize the map centered on a middle point
         const INITIAL_VIEW = { center: [20, 0], zoom: 2 };
         const map = L.map('map').setView(INITIAL_VIEW.center, INITIAL_VIEW.zoom);
+
+        // Keep Leaflet aligned when the mobile browser changes size or orientation.
+        window.addEventListener('resize', () => {
+            window.requestAnimationFrame(() => map.invalidateSize());
+        });
 
         // Track currently selected organization (for toggle behavior)
         let currentSelectedId = null;
