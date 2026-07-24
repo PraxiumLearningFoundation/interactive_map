@@ -331,9 +331,12 @@
         }
 
         /* ========== MOBILE SIDEBAR TOGGLE BUTTON ========== */
+        /* Positioned absolute (confined to #map-container, which is the nearest
+           positioned ancestor) rather than fixed to the viewport, so these controls
+           stay aligned with the map card instead of floating over the whole page. */
         #sidebar-toggle {
             display: none;
-            position: fixed;
+            position: absolute;
             top: 10px;
             left: 10px;
             z-index: 1100;
@@ -363,7 +366,7 @@
         /* Legend toggle button (mobile) */
         #legend-toggle {
             display: none;
-            position: fixed;
+            position: absolute;
             bottom: 10px;
             right: 10px;
             z-index: 1100;
@@ -387,6 +390,41 @@
             background: #0b1220;
             color: #e6eef6;
             box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        /* Full-screen expand toggle (mobile) */
+        #map-expand-toggle {
+            display: none;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1100;
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            padding: 0;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        #map-expand-toggle:active {
+            transform: scale(0.95);
+        }
+
+        body.dark #map-expand-toggle {
+            background: #0b1220;
+            color: #e6eef6;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        /* Prevent the embedding page from scrolling behind the full-screen map. */
+        body.map-expanded-active {
+            overflow: hidden;
         }
 
         /* ========== TABLET BREAKPOINT (max-width: 900px) ========== */
@@ -433,15 +471,36 @@
                 justify-content: center;
             }
 
+            #map-expand-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
             #map-container {
+                position: relative;
                 flex-direction: column;
                 /* Keep the map useful without filling the entire Squarespace page. */
                 height: clamp(300px, 62svh, 520px);
                 min-height: 0;
             }
 
-            #sidebar {
+            /* Tapping the expand toggle takes the map card full-screen (fixed to the
+               viewport) so the sidebar/legend/search are fully usable on small
+               screens, without permanently taking over the embedding page. */
+            #map-container.map-expanded {
                 position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100vw;
+                height: 100dvh;
+                z-index: 2000;
+            }
+
+            #sidebar {
+                position: absolute;
                 top: 0;
                 left: 0;
                 width: 85%;
@@ -461,7 +520,7 @@
             /* Sidebar overlay */
             #sidebar-overlay {
                 display: none;
-                position: fixed;
+                position: absolute;
                 top: 0;
                 left: 0;
                 width: 100%;
@@ -506,7 +565,7 @@
             /* Legend hidden by default, shown via toggle */
             #legend {
                 display: none;
-                position: fixed;
+                position: absolute;
                 bottom: 60px;
                 right: 10px;
                 top: auto;
@@ -593,16 +652,19 @@
 <body>
     <script src="categories.legacy.js"></script>
     
-    <!-- Mobile sidebar toggle button -->
-    <button id="sidebar-toggle" aria-label="Toggle sidebar menu">☰</button>
-    
-    <!-- Mobile legend toggle button -->
-    <button id="legend-toggle" aria-label="Toggle legend">🗺️</button>
-    
-    <!-- Sidebar overlay for mobile -->
-    <div id="sidebar-overlay"></div>
-    
     <div id="map-container">
+        <!-- Mobile sidebar toggle button -->
+        <button id="sidebar-toggle" aria-label="Toggle sidebar menu">☰</button>
+
+        <!-- Mobile legend toggle button -->
+        <button id="legend-toggle" aria-label="Toggle legend">🗺️</button>
+
+        <!-- Mobile full-screen expand toggle -->
+        <button id="map-expand-toggle" aria-label="Expand map to full screen">⛶</button>
+
+        <!-- Sidebar overlay for mobile -->
+        <div id="sidebar-overlay"></div>
+
         <div id="sidebar">
             <h2 style="display:flex;align-items:center;justify-content:space-between;">Praxium Network
                 <button id="dark-mode-toggle" aria-label="Toggle dark mode">Dark</button>
@@ -707,6 +769,8 @@
         // ========== MOBILE SIDEBAR & LEGEND TOGGLE ==========
         const sidebarToggle = document.getElementById('sidebar-toggle');
         const legendToggle = document.getElementById('legend-toggle');
+        const mapExpandToggle = document.getElementById('map-expand-toggle');
+        const mapContainerEl = document.getElementById('map-container');
         const sidebar = document.getElementById('sidebar');
         const legend = document.getElementById('legend');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -738,12 +802,29 @@
             legendToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         }
 
+        // Expands the map card to fill the viewport (fixed-position takeover) so the
+        // sidebar/legend/search are comfortably usable on small screens, then
+        // restores the compact embedded size when toggled again.
+        function toggleMapExpand() {
+            const expanded = mapContainerEl.classList.toggle('map-expanded');
+            document.body.classList.toggle('map-expanded-active', expanded);
+            mapExpandToggle.innerHTML = expanded ? '✕' : '⛶';
+            mapExpandToggle.setAttribute('aria-label', expanded ? 'Exit full screen' : 'Expand map to full screen');
+            mapExpandToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            // Let the layout settle into its new size before Leaflet recalculates tiles.
+            setTimeout(() => map.invalidateSize(), 300);
+        }
+
         if (sidebarToggle) {
             sidebarToggle.addEventListener('click', toggleSidebar);
         }
 
         if (legendToggle) {
             legendToggle.addEventListener('click', toggleLegend);
+        }
+
+        if (mapExpandToggle) {
+            mapExpandToggle.addEventListener('click', toggleMapExpand);
         }
 
         if (sidebarOverlay) {
