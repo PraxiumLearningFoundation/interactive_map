@@ -742,9 +742,14 @@
         // The live dataset used by the map (populated by loadNetworkData)
         let organizationsData = [];
 
-        // Initialize the map centered on a middle point
-        const INITIAL_VIEW = { center: [20, 0], zoom: 2 };
+        // Initialize the map centered on the Praxium Foundation's location (matches
+        // the zoom level used when focusing on any single organization, see below).
+        const INITIAL_VIEW = { center: [49.2827, -123.1207], zoom: 5 };
         const map = L.map('map').setView(INITIAL_VIEW.center, INITIAL_VIEW.zoom);
+
+        // Move zoom controls to the bottom-left — the default top-left position
+        // overlaps the mobile sidebar-toggle button, which also lives top-left.
+        map.zoomControl.setPosition('bottomleft');
 
         // Keep Leaflet aligned when the mobile browser changes size or orientation.
         window.addEventListener('resize', () => {
@@ -774,7 +779,6 @@
 
         if (darkToggleBtn) {
             darkToggleBtn.addEventListener('click', toggleDarkMode);
-            updateDarkButton();
         }
 
         // ========== MOBILE SIDEBAR & LEGEND TOGGLE ==========
@@ -864,10 +868,13 @@
         }
 
         // Initialize layer based on saved preference
+        // Default to dark mode on a visitor's first view; once they've explicitly
+        // chosen a mode (via the toggle), always respect that saved choice instead.
         const savedDark = localStorage.getItem('praxium-dark-mode');
-        const initialDark = savedDark === 'true';
+        const initialDark = savedDark === null ? true : savedDark === 'true';
         setBaseLayer(initialDark ? DARK_TILE_URL : LIGHT_TILE_URL);
         if (initialDark) document.body.classList.add('dark');
+        if (darkToggleBtn) updateDarkButton();
 
         // Store markers and connection lines
         const markers = {};
