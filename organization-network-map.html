@@ -331,9 +331,12 @@
         }
 
         /* ========== MOBILE SIDEBAR TOGGLE BUTTON ========== */
+        /* Positioned absolute (confined to #map-container, which is the nearest
+           positioned ancestor) rather than fixed to the viewport, so these controls
+           stay aligned with the map card instead of floating over the whole page. */
         #sidebar-toggle {
             display: none;
-            position: fixed;
+            position: absolute;
             top: 10px;
             left: 10px;
             z-index: 1100;
@@ -363,7 +366,7 @@
         /* Legend toggle button (mobile) */
         #legend-toggle {
             display: none;
-            position: fixed;
+            position: absolute;
             bottom: 10px;
             right: 10px;
             z-index: 1100;
@@ -389,13 +392,55 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.5);
         }
 
+        /* Full-screen expand toggle (mobile) */
+        #map-expand-toggle {
+            display: none;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1100;
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            padding: 0;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        #map-expand-toggle:active {
+            transform: scale(0.95);
+        }
+
+        body.dark #map-expand-toggle {
+            background: #0b1220;
+            color: #e6eef6;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        /* Prevent the embedding page from scrolling behind the full-screen map. */
+        body.map-expanded-active {
+            overflow: hidden;
+        }
+
         /* ========== TABLET BREAKPOINT (max-width: 900px) ========== */
-        @media (max-width: 900px) {
+        /* ========== TABLET BREAKPOINT (601px-900px) ==========
+           Scoped with min-width so it never overlaps the mobile breakpoint below —
+           the two are fully independent layouts, not a cascade of overrides. */
+        @media (min-width: 601px) and (max-width: 900px) {
             #map-container {
                 flex-direction: column-reverse;
             }
 
             #sidebar {
+                /* Same content-box overflow issue as the mobile breakpoint: without
+                   border-box, width:100% plus this element's padding rendered
+                   ~30px wider than the container. */
+                box-sizing: border-box;
                 width: 100%;
                 max-height: 40vh;
                 box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
@@ -433,18 +478,45 @@
                 justify-content: center;
             }
 
-            #map-container {
-                flex-direction: column;
-                height: 100vh;
-                height: 100dvh; /* Dynamic viewport height for mobile browsers */
+            #map-expand-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
 
-            #sidebar {
+            #map-container {
+                position: relative;
+                flex-direction: column;
+                /* Keep the map useful without filling the entire Squarespace page. */
+                height: clamp(300px, 62svh, 520px);
+                min-height: 0;
+            }
+
+            /* Tapping the expand toggle takes the map card full-screen (fixed to the
+               viewport) so the sidebar/legend/search are fully usable on small
+               screens, without permanently taking over the embedding page. */
+            #map-container.map-expanded {
                 position: fixed;
                 top: 0;
                 left: 0;
-                width: 85%;
-                max-width: 320px;
+                right: 0;
+                bottom: 0;
+                width: 100vw;
+                height: 100dvh;
+                z-index: 2000;
+            }
+
+            #sidebar {
+                /* border-box so this width is the actual rendered width, padding
+                   included — content-box sizing here was causing the sidebar to
+                   render ~30px wider/taller than specified and clip at the edge
+                   on narrow phones. A single fluid value replaces the old
+                   85%/320px pair plus a separate <400px override that fought it. */
+                box-sizing: border-box;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: min(320px, 85vw);
                 height: 100%;
                 max-height: 100%;
                 z-index: 1050;
@@ -460,7 +532,7 @@
             /* Sidebar overlay */
             #sidebar-overlay {
                 display: none;
-                position: fixed;
+                position: absolute;
                 top: 0;
                 left: 0;
                 width: 100%;
@@ -474,7 +546,7 @@
             }
 
             #map {
-                flex: 1;
+                flex: 1 1 auto;
                 height: 100%;
                 width: 100%;
             }
@@ -505,7 +577,7 @@
             /* Legend hidden by default, shown via toggle */
             #legend {
                 display: none;
-                position: fixed;
+                position: absolute;
                 bottom: 60px;
                 right: 10px;
                 top: auto;
@@ -567,13 +639,12 @@
             }
         }
 
-        /* ========== SMALL MOBILE (max-width: 400px) ========== */
+        /* ========== SMALL PHONE REFINEMENTS (max-width: 400px) ==========
+           Sidebar sizing no longer needs an override here — the fluid
+           min(320px, 85vw) width in the mobile breakpoint above already scales
+           down gracefully on narrow phones. This block only holds the remaining
+           small-screen-specific tweaks (popup/legend sizing). */
         @media (max-width: 400px) {
-            #sidebar {
-                width: 100%;
-                max-width: 100%;
-            }
-
             .popup-content {
                 max-width: 220px;
             }
@@ -592,16 +663,19 @@
 <body>
     <script src="categories.legacy.js"></script>
     
-    <!-- Mobile sidebar toggle button -->
-    <button id="sidebar-toggle" aria-label="Toggle sidebar menu">☰</button>
-    
-    <!-- Mobile legend toggle button -->
-    <button id="legend-toggle" aria-label="Toggle legend">🗺️</button>
-    
-    <!-- Sidebar overlay for mobile -->
-    <div id="sidebar-overlay"></div>
-    
     <div id="map-container">
+        <!-- Mobile sidebar toggle button -->
+        <button id="sidebar-toggle" aria-label="Toggle sidebar menu">☰</button>
+
+        <!-- Mobile legend toggle button -->
+        <button id="legend-toggle" aria-label="Toggle legend">🗺️</button>
+
+        <!-- Mobile full-screen expand toggle -->
+        <button id="map-expand-toggle" aria-label="Expand map to full screen">⛶</button>
+
+        <!-- Sidebar overlay for mobile -->
+        <div id="sidebar-overlay"></div>
+
         <div id="sidebar">
             <h2 style="display:flex;align-items:center;justify-content:space-between;">Praxium Network
                 <button id="dark-mode-toggle" aria-label="Toggle dark mode">Dark</button>
@@ -672,6 +746,11 @@
         const INITIAL_VIEW = { center: [20, 0], zoom: 2 };
         const map = L.map('map').setView(INITIAL_VIEW.center, INITIAL_VIEW.zoom);
 
+        // Keep Leaflet aligned when the mobile browser changes size or orientation.
+        window.addEventListener('resize', () => {
+            window.requestAnimationFrame(() => map.invalidateSize());
+        });
+
         // Track currently selected organization (for toggle behavior)
         let currentSelectedId = null;
 
@@ -701,6 +780,8 @@
         // ========== MOBILE SIDEBAR & LEGEND TOGGLE ==========
         const sidebarToggle = document.getElementById('sidebar-toggle');
         const legendToggle = document.getElementById('legend-toggle');
+        const mapExpandToggle = document.getElementById('map-expand-toggle');
+        const mapContainerEl = document.getElementById('map-container');
         const sidebar = document.getElementById('sidebar');
         const legend = document.getElementById('legend');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -732,12 +813,29 @@
             legendToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         }
 
+        // Expands the map card to fill the viewport (fixed-position takeover) so the
+        // sidebar/legend/search are comfortably usable on small screens, then
+        // restores the compact embedded size when toggled again.
+        function toggleMapExpand() {
+            const expanded = mapContainerEl.classList.toggle('map-expanded');
+            document.body.classList.toggle('map-expanded-active', expanded);
+            mapExpandToggle.innerHTML = expanded ? '✕' : '⛶';
+            mapExpandToggle.setAttribute('aria-label', expanded ? 'Exit full screen' : 'Expand map to full screen');
+            mapExpandToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            // Let the layout settle into its new size before Leaflet recalculates tiles.
+            setTimeout(() => map.invalidateSize(), 300);
+        }
+
         if (sidebarToggle) {
             sidebarToggle.addEventListener('click', toggleSidebar);
         }
 
         if (legendToggle) {
             legendToggle.addEventListener('click', toggleLegend);
+        }
+
+        if (mapExpandToggle) {
+            mapExpandToggle.addEventListener('click', toggleMapExpand);
         }
 
         if (sidebarOverlay) {
