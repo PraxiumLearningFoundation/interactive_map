@@ -4,6 +4,10 @@
 # categories.legacy.js) are published — NOT the whole repo, since that would
 # also publish /admin (a login page with no backend on static Pages) and the
 # /api function source as world-readable static files.
+#
+# organization-network-map.html is also copied to index.html so the site's
+# root URL (what GitHub's own Pages/deployment UI links to) serves the map
+# directly instead of 404ing.
 name: Deploy public map to Pages
 
 on:
@@ -45,6 +49,7 @@ jobs:
         run: |
           mkdir -p _site
           cp organization-network-map.html _site/
+          cp organization-network-map.html _site/index.html
           cp categories.json _site/
           cp categories.legacy.js _site/
 
