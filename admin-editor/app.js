@@ -11,6 +11,32 @@ let CANONICAL_CATEGORIES = [];
 const isElectron = window.electronAPI && window.electronAPI.isElectron;
 let currentFilePath = null;
 
+function connectionIds(value, selfId) {
+  return [...new Set(
+    String(value || '')
+      .split(',')
+      .map((entry) => Number(entry.trim()))
+      .filter((id) => Number.isSafeInteger(id) && id > 0 && id !== selfId)
+  )];
+}
+
+function applyReciprocalConnections(orgId, previousConnections, nextConnections) {
+  const previous = new Set(previousConnections || []);
+  const next = new Set(nextConnections || []);
+
+  organizationsData.forEach((candidate) => {
+    if (candidate.id === orgId) return;
+    const candidateConnections = Array.isArray(candidate.connections)
+      ? candidate.connections
+      : [];
+    if (next.has(candidate.id) && !candidateConnections.includes(orgId)) {
+      candidate.connections = [...candidateConnections, orgId];
+    } else if (previous.has(candidate.id) && !next.has(candidate.id)) {
+      candidate.connections = candidateConnections.filter((id) => id !== orgId);
+    }
+  });
+}
+
 function escapeHtml(str){
   if (!str) return '';
   return String(str)
@@ -36,10 +62,18 @@ function renderList(){
     // populate form fields
     form.elements.name.value = org.name || '';
     form.elements.location.value = org.location || '';
-    form.elements.lat.value = (org.coordinates && org.coordinates[0]) ? org.coordinates[0] : (org.lat || '');
-    form.elements.lng.value = (org.coordinates && org.coordinates[1]) ? org.coordinates[1] : (org.lng || '');
+    form.elements.country.value = org.country || '';
+    form.elements.lat.value = (
+      Array.isArray(org.coordinates) && org.coordinates[0] !== undefined
+    ) ? org.coordinates[0] : (org.lat || '');
+    form.elements.lng.value = (
+      Array.isArray(org.coordinates) && org.coordinates[1] !== undefined
+    ) ? org.coordinates[1] : (org.lng || '');
     form.elements.description.value = org.description || '';
+    form.elements.relationship.value = org.relationship || '';
     form.elements.website.value = (org.contact && org.contact.website) ? org.contact.website : '';
+    form.elements.email.value = (org.contact && org.contact.email) ? org.contact.email : '';
+    form.elements.phone.value = (org.contact && org.contact.phone) ? org.contact.phone : '';
     form.elements.connections.value = (org.connections && org.connections.length) ? org.connections.join(',') : '';
 
     // category select + custom handling — populate options from canonical list
@@ -53,7 +87,7 @@ function renderList(){
       if (Array.isArray(CANONICAL_CATEGORIES) && CANONICAL_CATEGORIES.length) {
         CANONICAL_CATEGORIES.forEach(c => addOpt(c, c));
       }
-      addOpt('Other','Other');
+      if (!CANONICAL_CATEGORIES.includes('Other')) addOpt('Other','Other');
       addOpt('custom','Custom...');
 
       // try to match existing category (case-insensitive against canonical)
@@ -82,6 +116,11 @@ function renderList(){
     deleteBtn.addEventListener('click', () => {
       if (!confirm('Delete this organization?')) return;
       organizationsData = organizationsData.filter(o => o.id !== org.id);
+      organizationsData.forEach((candidate) => {
+        candidate.connections = Array.isArray(candidate.connections)
+          ? candidate.connections.filter((id) => id !== org.id)
+          : [];
+      });
       syncToTextarea();
       renderList();
     });
@@ -106,19 +145,29 @@ function renderList(){
         categoryValue = customVal;
       }
 
+      const previousConnections = Array.isArray(org.connections) ? org.connections : [];
+      const nextConnections = connectionIds(form.elements.connections.value, org.id);
       const updated = {
+        ...org,
         id: org.id,
         name: form.elements.name.value.trim(),
         location: form.elements.location.value.trim(),
+        country: form.elements.country.value.trim(),
         coordinates: [ Number(form.elements.lat.value) || 0, Number(form.elements.lng.value) || 0 ],
         category: categoryValue,
         description: form.elements.description.value.trim(),
-        contact: { website: form.elements.website.value.trim() },
-        connections: form.elements.connections.value.split(',').map(s=>Number(s.trim())).filter(Boolean)
+        relationship: form.elements.relationship.value.trim(),
+        contact: {
+          website: form.elements.website.value.trim(),
+          email: form.elements.email.value.trim(),
+          phone: form.elements.phone.value.trim()
+        },
+        connections: nextConnections
       };
 
       const idx = organizationsData.findIndex(o=>o.id===org.id);
       if (idx > -1) organizationsData[idx] = updated;
+      applyReciprocalConnections(org.id, previousConnections, nextConnections);
       syncToTextarea();
       renderList();
     };

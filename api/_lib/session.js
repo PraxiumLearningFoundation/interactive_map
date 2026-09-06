@@ -9,6 +9,9 @@ const SESSION_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 function getSecret() {
   const secret = process.env.SESSION_SECRET;
   if (!secret) throw new Error('SESSION_SECRET is not configured');
+  if (Buffer.byteLength(secret, 'utf8') < 32) {
+    throw new Error('SESSION_SECRET must be at least 32 bytes');
+  }
   return secret;
 }
 

@@ -6,7 +6,8 @@ const { readJsonBody, sendJson, methodNotAllowed } = require('./_lib/http');
 // User-Agent. This function is the *only* place that ever talks to Nominatim — the browser
 // never calls it directly.
 const NOMINATIM_MIN_INTERVAL_MS = 1100;
-const USER_AGENT = 'Praxium-Map-Admin/1.0 (contact: hezekiahj@praxiumfoundation.com)';
+const MAX_ADDRESS_LENGTH = 300;
+const USER_AGENT = 'Praxium-Map-Admin/1.0 (contact: info@praxiumfoundation.com)';
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return methodNotAllowed(res, ['POST']);
@@ -15,6 +16,9 @@ module.exports = async (req, res) => {
   const { address } = readJsonBody(req);
   if (typeof address !== 'string' || !address.trim()) {
     return sendJson(res, 400, { error: 'address_required' });
+  }
+  if (address.trim().length > MAX_ADDRESS_LENGTH) {
+    return sendJson(res, 400, { error: 'address_too_long' });
   }
 
   await throttleGeocodeCall(NOMINATIM_MIN_INTERVAL_MS);
@@ -30,10 +34,22 @@ module.exports = async (req, res) => {
       return sendJson(res, 404, { error: 'not_found' });
     }
     const best = results[0];
+    const lat = Number(best.lat);
+    const lng = Number(best.lon);
+    if (
+      !Number.isFinite(lat)
+      || !Number.isFinite(lng)
+      || lat < -90
+      || lat > 90
+      || lng < -180
+      || lng > 180
+    ) {
+      return sendJson(res, 502, { error: 'geocode_service_error' });
+    }
     return sendJson(res, 200, {
-      lat: Number(best.lat),
-      lng: Number(best.lon),
-      displayName: best.display_name,
+      lat,
+      lng,
+      displayName: typeof best.display_name === 'string' ? best.display_name : address.trim(),
     });
   } catch (err) {
     console.error('POST /api/geocode failed:', err);

@@ -4,7 +4,7 @@ This folder contains the Electron configuration for packaging the admin editor a
 
 ## Development
 
-1. Install dependencies:
+1. Install Node.js 22.12 or newer, then install dependencies:
    ```bash
    npm install
    ```
@@ -39,10 +39,11 @@ Built packages will be output to the `dist/` folder.
 
 ## Icons
 
-Place application icons in the `icons/` folder:
-- `icon.png` - 512x512 PNG (used for Linux and as source)
+Application icons live in the `icons/` folder:
+- `icon.png` - 1024x1024 PNG (used for Linux and as source)
 - `icon.ico` - Windows icon
 - `icon.icns` - macOS icon
+- `icon.svg` - editable high-resolution source artwork
 
 You can generate these from a PNG using tools like:
 - [electron-icon-maker](https://www.npmjs.com/package/electron-icon-maker)

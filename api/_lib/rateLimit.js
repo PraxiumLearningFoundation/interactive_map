@@ -3,18 +3,28 @@
 // small trusted-board internal tool. Do not rely on this alone for a public-facing surface.
 const buckets = new Map();
 
-// Returns true if the caller (keyed by e.g. IP) is within the allowed rate.
-function checkRateLimit(key, { max, windowMs }) {
+function recentAttempts(key, windowMs) {
   const now = Date.now();
-  const entry = buckets.get(key) || [];
-  const recent = entry.filter((ts) => now - ts < windowMs);
-  if (recent.length >= max) {
-    buckets.set(key, recent);
-    return false;
-  }
-  recent.push(now);
+  const recent = (buckets.get(key) || []).filter((ts) => now - ts < windowMs);
+  if (recent.length) buckets.set(key, recent);
+  else buckets.delete(key);
+  return recent;
+}
+
+// Returns true if the caller (keyed by e.g. IP) may make another attempt.
+// Checking does not consume the budget; only failed authentication should.
+function checkRateLimit(key, { max, windowMs }) {
+  return recentAttempts(key, windowMs).length < max;
+}
+
+function recordRateLimitFailure(key, { windowMs }) {
+  const recent = recentAttempts(key, windowMs);
+  recent.push(Date.now());
   buckets.set(key, recent);
-  return true;
+}
+
+function clearRateLimit(key) {
+  buckets.delete(key);
 }
 
 function getClientIp(req) {
@@ -34,4 +44,10 @@ async function throttleGeocodeCall(minIntervalMs) {
   lastGeocodeCallAt = Date.now();
 }
 
-module.exports = { checkRateLimit, getClientIp, throttleGeocodeCall };
+module.exports = {
+  checkRateLimit,
+  recordRateLimitFailure,
+  clearRateLimit,
+  getClientIp,
+  throttleGeocodeCall,
+};

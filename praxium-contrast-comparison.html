@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Praxium — clay contrast comparison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@500&family=Poppins:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#efefee; --ink:#3e3d3d; --white:#fff;
+  --clay-500:#a3826c;   /* as built */
+  --clay-600:#8d6a52;   /* the obvious small fix */
+  --clay-700:#85624b;   /* the one that actually passes */
+  --hair:rgba(62,61,61,.16);
+  --font-h:"Epilogue",system-ui,sans-serif;
+  --font-b:"Poppins",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{font-size:16px}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--font-b);line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--font-h);font-weight:500;letter-spacing:-.02em;line-height:1.2;margin:0}
+.wrap{max-width:1200px;margin:0 auto;padding:0 4vw}
+@media(max-width:767px){.wrap{padding:0 6vw}}
+
+header{padding:7vh 0 4vh;border-bottom:1px solid var(--hair)}
+header h1{font-size:clamp(2rem,5vw,3.2rem);max-width:18ch}
+header p{max-width:62ch;margin:1.2rem 0 0}
+
+section{padding:5vh 0;border-bottom:1px solid var(--hair)}
+.sec-head{margin-bottom:2rem}
+.sec-head h2{font-size:clamp(1.4rem,3vw,2rem)}
+.sec-head p{max-width:62ch;margin:.7rem 0 0;font-size:.95rem}
+
+/* candidate strip */
+.cands{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1rem;margin-bottom:2.5rem}
+.cand{border:1px solid var(--hair);background:var(--white)}
+.cand .bar{height:74px}
+.cand .body{padding:.9rem 1rem 1.1rem}
+.cand .nm{font-family:var(--font-h);font-weight:500;letter-spacing:-.02em;font-size:1.05rem}
+.cand .hx{font-family:ui-monospace,Menlo,monospace;font-size:.85rem;margin-top:.1rem}
+.cand .vd{font-size:.82rem;margin-top:.6rem;line-height:1.45;color:#6e6c6b}
+
+/* comparison grid */
+.cmp{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--hair);border:1px solid var(--hair)}
+@media(max-width:860px){.cmp{grid-template-columns:1fr}}
+.col{background:var(--paper);padding:1.6rem 1.4rem 1.8rem}
+.col-h{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;
+  padding-bottom:.7rem;margin-bottom:1.4rem;border-bottom:1px solid var(--hair)}
+.col-h b{font-family:var(--font-h);font-weight:500;letter-spacing:-.02em;font-size:1rem}
+.col-h code{font-family:ui-monospace,Menlo,monospace;font-size:.78rem;color:#6e6c6b}
+
+.ratio{display:inline-flex;align-items:center;gap:.4rem;font-family:ui-monospace,Menlo,monospace;
+  font-size:.78rem;padding:.25rem .55rem;border-radius:3px;margin-top:.6rem}
+.pass{background:#e2ece4;color:#2c4d33}
+.fail{background:#f4dedb;color:#7d2f24}
+.na{background:#e8e6e4;color:#5c5a58}
+
+.demo p{margin:0 0 .5rem;font-size:1rem;max-width:34ch}
+.demo a{text-decoration:underline;text-underline-offset:.2em}
+.btn{display:inline-block;border-radius:6.4px;padding:1.5em 2em;font-size:1rem;
+  line-height:1.2;color:#fff;text-decoration:none;text-align:center}
+.blk{margin-bottom:2.2rem}
+.blk:last-child{margin-bottom:0}
+.blk-lab{font-size:.8rem;color:#6e6c6b;margin:0 0 .6rem}
+.h3d{font-size:2.2rem;font-family:var(--font-h);font-weight:500;letter-spacing:-.02em;line-height:1.2}
+.h4d{font-size:1.6rem;font-family:var(--font-h);font-weight:500;letter-spacing:-.02em;line-height:1.2}
+
+.verdict{background:var(--white);border:1px solid var(--hair);padding:clamp(1.4rem,4vw,2.4rem)}
+.verdict p{max-width:70ch}
+.verdict p:first-child{margin-top:0}
+.verdict p:last-child{margin-bottom:0}
+
+table{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:1.5rem}
+th,td{text-align:left;padding:.6rem .7rem;border-bottom:1px solid var(--hair)}
+th{font-family:var(--font-h);font-weight:500;letter-spacing:-.02em}
+td:first-child,td:nth-child(2){font-family:ui-monospace,Menlo,monospace;font-size:.8rem}
+footer{padding:4vh 0 8vh;font-size:.85rem;color:#6e6c6b}
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <h1>Three versions of clay</h1>
+  <p>Same hue, three lightness values. The question is which one carries text and button labels. Headings are unaffected — at 2.2rem and 1.6rem they clear the large-text threshold in all three. Ratios below are measured against the live palette, not estimated.</p>
+</header>
+
+<main>
+
+<section class="wrap">
+  <div class="sec-head">
+    <h2>The candidates</h2>
+    <p>The middle value is the tempting one — a small nudge that looks like it should be enough. It isn't, and that's the useful thing to see.</p>
+  </div>
+
+  <div class="cands">
+    <div class="cand">
+      <div class="bar" style="background:#a3826c"></div>
+      <div class="body">
+        <div class="nm">As built</div>
+        <div class="hx">#A3826C · L 53%</div>
+        <div class="vd">The current brand value. Fine as a surface fill and for large headings. Fails as text or as a button ground.</div>
+      </div>
+    </div>
+    <div class="cand">
+      <div class="bar" style="background:#8d6a52"></div>
+      <div class="body">
+        <div class="nm">Nudged</div>
+        <div class="hx">#8D6A52 · L 44%</div>
+        <div class="vd">Visibly darker, close to the original. Reaches 4.23:1 — still short of 4.5:1, so it fails while looking like it shouldn't.</div>
+      </div>
+    </div>
+    <div class="cand">
+      <div class="bar" style="background:#85624b"></div>
+      <div class="body">
+        <div class="nm">Corrected</div>
+        <div class="hx">#85624B · L 41%</div>
+        <div class="vd">Clears AA in both directions — as text on paper, and as a fill under white labels. Same hue family, reads as the same brand.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="sec-head">
+    <h2>Body link on paper</h2>
+    <p>This is the failure that matters most, because paragraph links appear on every page at 16px.</p>
+  </div>
+  <div class="cmp">
+    <div class="col">
+      <div class="col-h"><b>As built</b><code>#A3826C</code></div>
+      <div class="demo">
+        <p>Sessions are open to anyone. <a href="#" style="color:#a3826c">Read the Endeavor philosophy</a> before you come.</p>
+        <span class="ratio fail">3.06 : 1 — fails AA</span>
+      </div>
+    </div>
+    <div class="col">
+      <div class="col-h"><b>Nudged</b><code>#8D6A52</code></div>
+      <div class="demo">
+        <p>Sessions are open to anyone. <a href="#" style="color:#8d6a52">Read the Endeavor philosophy</a> before you come.</p>
+        <span class="ratio fail">4.23 : 1 — fails AA</span>
+      </div>
+    </div>
+    <div class="col">
+      <div class="col-h"><b>Corrected</b><code>#85624B</code></div>
+      <div class="demo">
+        <p>Sessions are open to anyone. <a href="#" style="color:#85624b">Read the Endeavor philosophy</a> before you come.</p>
+        <span class="ratio pass">4.75 : 1 — passes AA</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="sec-head">
+    <h2>Primary button</h2>
+    <p>White labels at 16px on a clay fill. The current combination is the single most-used interactive element on the site.</p>
+  </div>
+  <div class="cmp">
+    <div class="col">
+      <div class="col-h"><b>As built</b><code>#A3826C</code></div>
+      <div class="blk">
+        <a class="btn" href="#" style="background:#a3826c">Start your journey</a>
+        <div><span class="ratio fail">3.52 : 1 — fails AA</span></div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="col-h"><b>Nudged</b><code>#8D6A52</code></div>
+      <div class="blk">
+        <a class="btn" href="#" style="background:#8d6a52">Start your journey</a>
+        <div><span class="ratio pass">4.87 : 1 — passes AA</span></div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="col-h"><b>Corrected</b><code>#85624B</code></div>
+      <div class="blk">
+        <a class="btn" href="#" style="background:#85624b">Start your journey</a>
+        <div><span class="ratio pass">5.46 : 1 — passes AA</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="sec-head">
+    <h2>Headings — unchanged either way</h2>
+    <p>Included so the tradeoff is visible. h3 and h4 already pass as large text at 3.06:1, so darkening clay costs you the lighter heading tone you currently have. This is the only place the correction takes something away.</p>
+  </div>
+  <div class="cmp">
+    <div class="col">
+      <div class="col-h"><b>As built</b><code>#A3826C</code></div>
+      <div class="blk">
+        <div class="h3d" style="color:#a3826c">Attend Shinrin Yoku</div>
+        <div class="h4d" style="color:#a3826c;margin-top:.8rem">Reconnect with Nature</div>
+        <div><span class="ratio pass">3.06 : 1 — passes for large text</span></div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="col-h"><b>Nudged</b><code>#8D6A52</code></div>
+      <div class="blk">
+        <div class="h3d" style="color:#8d6a52">Attend Shinrin Yoku</div>
+        <div class="h4d" style="color:#8d6a52;margin-top:.8rem">Reconnect with Nature</div>
+        <div><span class="ratio pass">4.23 : 1 — passes</span></div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="col-h"><b>Corrected</b><code>#85624B</code></div>
+      <div class="blk">
+        <div class="h3d" style="color:#85624b">Attend Shinrin Yoku</div>
+        <div class="h4d" style="color:#85624b;margin-top:.8rem">Reconnect with Nature</div>
+        <div><span class="ratio pass">4.75 : 1 — passes</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="sec-head"><h2>All measurements</h2></div>
+  <table>
+    <thead><tr><th>Foreground</th><th>Background</th><th>Ratio</th><th>Where it's used</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>#3E3D3D</td><td>#EFEFEE</td><td>9.41 : 1</td><td>Body copy, h1, h2</td><td>Passes AAA</td></tr>
+      <tr><td>#A3826C</td><td>#EFEFEE</td><td>3.06 : 1</td><td>Links, h3, h4</td><td>Large text only</td></tr>
+      <tr><td>#FFFFFF</td><td>#A3826C</td><td>3.52 : 1</td><td>Primary button labels</td><td>Fails AA</td></tr>
+      <tr><td>#8D6A52</td><td>#EFEFEE</td><td>4.23 : 1</td><td>—</td><td>Fails AA</td></tr>
+      <tr><td>#FFFFFF</td><td>#8D6A52</td><td>4.87 : 1</td><td>—</td><td>Passes AA</td></tr>
+      <tr><td>#85624B</td><td>#EFEFEE</td><td>4.75 : 1</td><td>—</td><td>Passes AA</td></tr>
+      <tr><td>#FFFFFF</td><td>#85624B</td><td>5.46 : 1</td><td>—</td><td>Passes AA</td></tr>
+      <tr><td>#6E6C6B</td><td>#EFEFEE</td><td>4.54 : 1</td><td>Proposed muted text</td><td>Passes AA</td></tr>
+      <tr><td>#C7AC98</td><td>#3E3D3D</td><td>5.04 : 1</td><td>Reserved for dark mode</td><td>Passes AA</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="wrap">
+  <div class="sec-head"><h2>What I'd pick</h2></div>
+  <div class="verdict">
+    <p><strong>Split the role rather than replacing the color.</strong> Keep #A3826C as the display value — h3, h4, large numerals, decorative fills, the announcement bar. It's the color the foundation already recognises as theirs, and at those sizes it's compliant.</p>
+    <p>Introduce #85624B as a separate token used only where the text is small or a label sits on top: paragraph links, button fills, form accents, anything under 24px. Two tokens, one hue, no visible rebrand.</p>
+    <p>The reason not to take the nudged value: at 4.23:1 it fails the threshold while looking like a fix, which is worse than either extreme. You'd carry the same problem with less of the original color to show for it.</p>
+    <p>Whichever you choose, the token file ships with both defined and a single line that selects between them, so the decision stays reversible.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="wrap">
+  Ratios calculated per WCAG 2.1 relative luminance. AA requires 4.5:1 for text under 24px (or under 18.66px bold), and 3:1 for larger text and UI components.
+</footer>
+
+</body>
+</html>

@@ -58,3 +58,6 @@ out/
 
 # Local testing
 *.log
+.tmp-chrome/
+.cc-history/
+Plan.md

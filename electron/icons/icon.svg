@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7f7f6"/>
+      <stop offset="1" stop-color="#e4e4e2"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.78" cy="0.18" r="0.72">
+      <stop offset="0" stop-color="#c7ac98" stop-opacity="0.46"/>
+      <stop offset="1" stop-color="#c7ac98" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1024" height="1024" rx="224" fill="url(#background)"/>
+  <rect width="1024" height="1024" rx="224" fill="url(#glow)"/>
+
+  <g fill="none" stroke="#85624b" stroke-linecap="round" stroke-width="18" opacity="0.9">
+    <path d="M286 690 408 585"/>
+    <path d="M611 373 748 267"/>
+    <path d="M624 568 779 657"/>
+  </g>
+
+  <g fill="#a3826c" stroke="#ffffff" stroke-width="14">
+    <circle cx="270" cy="704" r="38"/>
+    <circle cx="764" cy="254" r="38"/>
+    <circle cx="799" cy="669" r="38"/>
+  </g>
+
+  <g>
+    <path
+      d="M512 212c-169 0-306 137-306 306 0 176 147 323 306 390 159-67 306-214 306-390 0-169-137-306-306-306Z"
+      fill="#3e3d3d"
+      stroke="#ffffff"
+      stroke-width="22"
+    />
+    <circle cx="512" cy="510" r="214" fill="#85624b" stroke="#c7ac98" stroke-width="10"/>
+    <text
+      x="512"
+      y="625"
+      fill="#ffffff"
+      font-family="Arial, sans-serif"
+      font-size="330"
+      font-weight="700"
+      text-anchor="middle"
+    >P</text>
+  </g>
+</svg>

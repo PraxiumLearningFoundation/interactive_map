@@ -1,6 +1,11 @@
 const crypto = require('crypto');
 const { createSessionToken, buildSessionCookie } = require('./_lib/session');
-const { checkRateLimit, getClientIp } = require('./_lib/rateLimit');
+const {
+  checkRateLimit,
+  recordRateLimitFailure,
+  clearRateLimit,
+  getClientIp,
+} = require('./_lib/rateLimit');
 const { readJsonBody, sendJson, methodNotAllowed } = require('./_lib/http');
 
 const MAX_ATTEMPTS = 5;
@@ -18,7 +23,8 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return methodNotAllowed(res, ['POST']);
 
   const ip = getClientIp(req);
-  if (!checkRateLimit(`auth:${ip}`, { max: MAX_ATTEMPTS, windowMs: WINDOW_MS })) {
+  const rateLimitKey = `auth:${ip}`;
+  if (!checkRateLimit(rateLimitKey, { max: MAX_ATTEMPTS, windowMs: WINDOW_MS })) {
     return sendJson(res, 429, { ok: false, error: 'too_many_attempts' });
   }
 
@@ -29,9 +35,11 @@ module.exports = async (req, res) => {
   }
 
   if (typeof passphrase !== 'string' || !passphrase || !constantTimeEquals(passphrase, expected)) {
+    recordRateLimitFailure(rateLimitKey, { windowMs: WINDOW_MS });
     return sendJson(res, 401, { ok: false, error: 'invalid_passphrase' });
   }
 
+  clearRateLimit(rateLimitKey);
   const token = createSessionToken();
   res.setHeader('Set-Cookie', buildSessionCookie(token));
   return sendJson(res, 200, { ok: true });

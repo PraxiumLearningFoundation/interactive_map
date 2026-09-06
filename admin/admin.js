@@ -126,8 +126,11 @@ function populateConnectionsSelect(selectedIds, excludeId) {
 
 function initPreviewMap(lat, lng) {
   if (!previewMap) {
-    previewMap = L.map('preview-map', { attributionControl: false }).setView([lat || 20, lng || 0], lat ? 12 : 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(previewMap);
+    previewMap = L.map('preview-map').setView([lat || 20, lng || 0], lat ? 12 : 2);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    }).addTo(previewMap);
     previewMarker = L.marker([lat || 20, lng || 0], { draggable: true }).addTo(previewMap);
     previewMarker.on('dragend', () => {
       const pos = previewMarker.getLatLng();
@@ -159,10 +162,17 @@ function openForm(org) {
   document.getElementById('org-email').value = (org && org.contact && org.contact.email) || '';
   document.getElementById('org-phone').value = (org && org.contact && org.contact.phone) || '';
   document.getElementById('org-location').value = org ? org.location : '';
+  document.getElementById('org-country').value = (org && org.country) || '';
   document.getElementById('org-lat').value = org ? org.coordinates[0] : '';
   document.getElementById('org-lng').value = org ? org.coordinates[1] : '';
   document.getElementById('org-description').value = org ? org.description : '';
-  document.getElementById('description-count').textContent = org ? org.description.length : 0;
+  document.getElementById('description-count').textContent = (org && org.description)
+    ? org.description.length
+    : 0;
+  document.getElementById('org-relationship').value = (org && org.relationship) || '';
+  document.getElementById('relationship-count').textContent = (org && org.relationship)
+    ? org.relationship.length
+    : 0;
   document.getElementById('geocode-status').textContent = '';
   document.getElementById('delete-btn').hidden = !org;
 
@@ -190,6 +200,10 @@ document.getElementById('org-category').addEventListener('change', (e) => {
 
 document.getElementById('org-description').addEventListener('input', (e) => {
   document.getElementById('description-count').textContent = e.target.value.length;
+});
+
+document.getElementById('org-relationship').addEventListener('input', (e) => {
+  document.getElementById('relationship-count').textContent = e.target.value.length;
 });
 
 document.getElementById('org-lat').addEventListener('change', updatePreviewMarker);
@@ -280,10 +294,12 @@ form.addEventListener('submit', async (e) => {
   const org = {
     name: document.getElementById('org-name').value.trim(),
     location: document.getElementById('org-location').value.trim(),
+    country: document.getElementById('org-country').value.trim(),
     coordinates: [parseFloat(document.getElementById('org-lat').value), parseFloat(document.getElementById('org-lng').value)],
     category,
     allowCustomCategory,
     description: document.getElementById('org-description').value.trim(),
+    relationship: document.getElementById('org-relationship').value.trim(),
     contact: {
       website: document.getElementById('org-website').value.trim(),
       email: document.getElementById('org-email').value.trim(),

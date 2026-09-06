@@ -3,8 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests"
+  >
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Praxium - Allies and Partners: Admin</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+    integrity="sha384-c6Rcwz4e4CITMbu/NBmnNS8yN2sC3cUElMEMfP3vqqKFp7GOYaaBBCqmaWBjmkjb"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  >
   <link rel="stylesheet" href="/admin/admin.css">
 </head>
 <body>
@@ -33,23 +44,33 @@
         <input type="hidden" id="org-id" value="">
 
         <label for="org-name">Organization Name *</label>
-        <input type="text" id="org-name" required>
+        <input type="text" id="org-name" maxlength="200" required>
 
         <label for="org-website">Website *</label>
-        <input type="url" id="org-website" placeholder="https://example.org" required>
+        <input type="url" id="org-website" maxlength="2048" placeholder="https://example.org" required>
 
         <label for="org-email">Email</label>
-        <input type="email" id="org-email">
+        <input type="email" id="org-email" maxlength="254">
 
         <label for="org-phone">Phone</label>
-        <input type="tel" id="org-phone">
+        <input type="tel" id="org-phone" maxlength="50">
 
         <label for="org-location">Address / Location *</label>
         <div class="inline-field">
-          <input type="text" id="org-location" required>
+          <input type="text" id="org-location" maxlength="300" required>
           <button type="button" id="geocode-btn">Look up coordinates</button>
         </div>
         <p id="geocode-status" class="field-hint"></p>
+
+        <label for="org-country">Country</label>
+        <input
+          type="text"
+          id="org-country"
+          maxlength="100"
+          autocomplete="country-name"
+          placeholder="Canada"
+        >
+        <p class="field-hint">Recommended so the public map can report global reach accurately.</p>
 
         <div class="coord-row">
           <div>
@@ -73,6 +94,18 @@
         <textarea id="org-description" rows="4" maxlength="500" required></textarea>
         <p class="field-hint"><span id="description-count">0</span>/500</p>
 
+        <label for="org-relationship">How Praxium Connects</label>
+        <textarea
+          id="org-relationship"
+          rows="3"
+          maxlength="500"
+          placeholder="Describe the collaboration, shared project, or community connection."
+        ></textarea>
+        <p class="field-hint">
+          This appears as an impact-focused note in the public map.
+          <span id="relationship-count">0</span>/500
+        </p>
+
         <label for="org-connections">Connected To</label>
         <select id="org-connections" multiple size="6"></select>
         <p class="field-hint">Hold Ctrl/Cmd to select multiple. Linking is automatically two-way.</p>
@@ -88,7 +121,12 @@
     </section>
   </main>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+    integrity="sha384-NElt3Op+9NBMCYaef5HxeJmU4Xeard/Lku8ek6hoPTvYkQPh3zLIrJP7KiRocsxO"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  ></script>
   <script src="/admin/admin.js"></script>
 </body>
 </html>

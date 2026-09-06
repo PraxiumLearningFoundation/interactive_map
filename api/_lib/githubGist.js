@@ -1,6 +1,7 @@
 // Thin wrapper around the GitHub Gist REST API. Uses the global `fetch` available in the
-// Node.js 18+ runtime — no dependency needed for two REST calls.
+// Modern Node.js runtime — no dependency needed for two REST calls.
 const DATA_FILENAME = 'organization-network-map.json';
+const GITHUB_API_VERSION = '2022-11-28';
 
 function getConfig() {
   const gistId = process.env.GIST_ID;
@@ -15,11 +16,23 @@ function authHeaders(token) {
     Authorization: `Bearer ${token}`,
     'User-Agent': 'praxium-interactive-map-admin',
     Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': GITHUB_API_VERSION,
   };
 }
 
+function getGistVersion(gist) {
+  const revision = gist
+    && Array.isArray(gist.history)
+    && gist.history[0]
+    && gist.history[0].version;
+  if (typeof revision === 'string' && revision) return revision;
+  if (gist && typeof gist.updated_at === 'string' && gist.updated_at) return gist.updated_at;
+  throw new Error('GitHub Gist response did not include a version');
+}
+
 // Fetches the Gist and returns { organizations, version, raw }.
-// `version` is the Gist's `updated_at` timestamp, used for optimistic concurrency checks.
+// `version` prefers GitHub's immutable revision id over the lower-resolution
+// updated_at timestamp, making optimistic concurrency checks more reliable.
 async function fetchGist() {
   const { gistId, token } = getConfig();
   const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
@@ -37,7 +50,12 @@ async function fetchGist() {
   // this dataset's scale, but fetch raw_url as a fallback so publish never silently truncates.
   let content = file.content;
   if (file.truncated && file.raw_url) {
-    const rawResp = await fetch(file.raw_url, { headers: { 'User-Agent': authHeaders(token)['User-Agent'] } });
+    const rawResp = await fetch(file.raw_url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'User-Agent': authHeaders(token)['User-Agent'],
+      },
+    });
     if (!rawResp.ok) throw new Error(`Failed to fetch truncated Gist file: ${rawResp.status}`);
     content = await rawResp.text();
   }
@@ -52,7 +70,7 @@ async function fetchGist() {
     throw new Error('Gist file content must be a JSON array of organizations');
   }
 
-  return { organizations, version: gist.updated_at, raw: content };
+  return { organizations, version: getGistVersion(gist), raw: content };
 }
 
 // Overwrites the Gist's data file with a new array of organizations.
@@ -72,7 +90,7 @@ async function updateGist(organizations) {
     throw new Error(`GitHub Gist API returned ${resp.status} on update`);
   }
   const gist = await resp.json();
-  return { organizations, version: gist.updated_at };
+  return { organizations, version: getGistVersion(gist) };
 }
 
 module.exports = { fetchGist, updateGist, DATA_FILENAME };
