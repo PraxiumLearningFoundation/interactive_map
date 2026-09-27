@@ -127,9 +127,14 @@ function populateConnectionsSelect(selectedIds, excludeId) {
 function initPreviewMap(lat, lng) {
   if (!previewMap) {
     previewMap = L.map('preview-map').setView([lat || 20, lng || 0], lat ? 12 : 2);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    // Esri's keyless community basemap (not OSM's own tile servers) — see map.js
+    // for why hotlinking tile.openstreetmap.org directly violates OSM's tile
+    // usage policy, and why CARTO isn't used either (it now requires an API key).
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      attribution:
+        'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors, and the GIS User Community',
       maxZoom: 19,
+      maxNativeZoom: 16,
     }).addTo(previewMap);
     previewMarker = L.marker([lat || 20, lng || 0], { draggable: true }).addTo(previewMap);
     previewMarker.on('dragend', () => {

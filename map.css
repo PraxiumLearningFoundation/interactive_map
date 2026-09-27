@@ -662,8 +662,12 @@ body.dark .leaflet-tile-pane {
   filter: saturate(0.55) sepia(0.12) brightness(1.03);
 }
 
+/* The invert-based filter this used to carry was built to fake a dark theme
+   out of light OSM tiles; it now runs on Esri's actual World_Dark_Gray_Base
+   basemap (already dark), so it's replaced with a much lighter touch that
+   just nudges the tiles toward Praxium's palette instead of re-inverting them. */
 .praxium-dark-tiles {
-  filter: invert(1) grayscale(0.72) sepia(0.1) brightness(0.56) contrast(1.08);
+  filter: saturate(0.85) brightness(0.95);
 }
 
 .map-toolbar {

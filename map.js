@@ -5,20 +5,34 @@
   const LEGACY_DATA_CACHE_KEY = 'praxium-map-cache-v1';
   const THEME_STORAGE_KEY = 'praxium-dark-mode';
   const FETCH_TIMEOUT_MS = 12000;
-  const INITIAL_VIEW = { center: [20, 0], zoom: 2 };
+  // Centered on the Praxium Foundation's home location (Vancouver, BC), at the
+  // same zoom level used when focusing on any single organization below.
+  const INITIAL_VIEW = { center: [49.2827, -123.1207], zoom: 5 };
   const FOCUS_ZOOM = 5;
 
+  // Hotlinking tile.openstreetmap.org directly from a production site embedded
+  // elsewhere (e.g. via iframe on the org's public website) violates OSM's tile
+  // usage policy (osm.wiki/tile_usage_policy) and gets the app blocked
+  // (osm.wiki/blocked) — that policy explicitly asks non-trivial-traffic apps to
+  // use a third-party tile provider instead of OSM's own volunteer-run servers.
+  //
+  // CARTO's basemaps were tried first, but as of this writing they now require a
+  // signed-up API key even for the "free" tier (a client-visible key we'd have to
+  // provision and maintain an account for). Esri's community Canvas basemaps
+  // (World_Light_Gray_Base / World_Dark_Gray_Base) are genuinely keyless, provide
+  // a real dark style (no CSS-filter fakery needed), and have been a standard
+  // free, no-signup Leaflet basemap option for years.
+  // Native tiles only go to zoom 16; maxZoom lets Leaflet upscale further rather
+  // than showing blank tiles if someone zooms in past that.
+  const ESRI_ATTRIBUTION =
+    'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors, and the GIS User Community';
   const LIGHT_TILE = {
-    // No {s} subdomains: OpenStreetMap's standard tile host is tile.openstreetmap.org,
-    // and the page CSP img-src only allows that exact host (a/b/c.* would be blocked).
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    attribution: ESRI_ATTRIBUTION,
   };
   const DARK_TILE = {
-    // The public OSM tiles remain readable in dark mode through a CSS filter.
-    // This avoids requiring a client-visible third-party basemap key.
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    attribution: ESRI_ATTRIBUTION,
   };
 
   const COLOR_PALETTE = [
@@ -174,6 +188,7 @@
     baseLayer = window.L.tileLayer(tile.url, {
       attribution: tile.attribution,
       maxZoom: 19,
+      maxNativeZoom: 16,
       className: tile === DARK_TILE ? 'praxium-dark-tiles' : 'praxium-light-tiles',
     });
     baseLayer.addTo(map);
