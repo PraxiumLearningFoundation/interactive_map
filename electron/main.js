@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { pathToFileURL } = require('url');
 
 let mainWindow;
 
@@ -13,13 +14,25 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      sandbox: true,
+      webSecurity: true
     },
     icon: path.join(__dirname, 'icons', 'icon.png')
   });
 
   // Load the admin editor
-  mainWindow.loadFile(path.join(__dirname, '..', 'admin-editor', 'index.html'));
+  const editorPath = path.join(__dirname, '..', 'admin-editor', 'index.html');
+  const editorUrl = pathToFileURL(editorPath).href;
+  mainWindow.loadFile(editorPath);
+
+  // The editor is a local-only utility. Prevent a changed dataset or future
+  // markup from navigating the privileged desktop window to remote content.
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  mainWindow.webContents.on('will-navigate', (event, targetUrl) => {
+    if (targetUrl !== editorUrl) event.preventDefault();
+  });
+  mainWindow.webContents.on('will-attach-webview', (event) => event.preventDefault());
 
   // Build application menu
   const menuTemplate = [
@@ -161,6 +174,9 @@ function loadSampleData() {
 
 // IPC handlers
 ipcMain.handle('save-file', async (event, { filePath, content }) => {
+  if (typeof filePath !== 'string' || !filePath || typeof content !== 'string') {
+    return { success: false, error: 'Invalid save request.' };
+  }
   try {
     fs.writeFileSync(filePath, content, 'utf-8');
     return { success: true };
@@ -196,6 +212,7 @@ ipcMain.handle('show-message', async (event, { type, title, message }) => {
 });
 
 app.whenReady().then(() => {
+  if (process.platform === 'win32') app.setAppUserModelId('com.praxium.mapeditor');
   createWindow();
 
   app.on('activate', () => {

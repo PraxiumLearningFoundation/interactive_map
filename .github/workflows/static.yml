@@ -1,7 +1,7 @@
 # Publishes the public map page to GitHub Pages — a second embeddable hosting
 # option alongside wherever the map is already hosted. Only the files the map
-# actually needs (organization-network-map.html, categories.json,
-# categories.legacy.js) are published — NOT the whole repo, since that would
+# actually needs (HTML, CSS, JavaScript, and category data) are published —
+# NOT the whole repo, since that would
 # also publish /admin (a login page with no backend on static Pages) and the
 # /api function source as world-readable static files.
 #
@@ -15,6 +15,10 @@ on:
     branches: ["main"]
     paths:
       - "organization-network-map.html"
+      - "praxium-tokens-v2.css"
+      - "map.css"
+      - "map.js"
+      - "network-data.js"
       - "categories.json"
       - "categories.legacy.js"
       - ".github/workflows/static.yml"
@@ -50,6 +54,10 @@ jobs:
           mkdir -p _site
           cp organization-network-map.html _site/
           cp organization-network-map.html _site/index.html
+          cp praxium-tokens-v2.css _site/
+          cp map.css _site/
+          cp map.js _site/
+          cp network-data.js _site/
           cp categories.json _site/
           cp categories.legacy.js _site/
 

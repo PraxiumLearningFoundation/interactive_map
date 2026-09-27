@@ -1,0 +1,453 @@
+/* ==========================================================================
+   Praxium Learning Foundation — design tokens v2
+   Three tiers: primitives -> semantic -> component.
+
+   Light mode is populated. Dark mode is scaffolded but not enabled: the
+   structure is in place and the ramp steps exist, so turning it on later is
+   a matter of filling one block, not rewriting components.
+
+   THE ONE RULE
+   Components never reference a primitive. If you write var(--clay-500) in a
+   button, a semantic token is missing. Add it instead.
+   ========================================================================== */
+
+/* ==========================================================================
+   TIER 1 — PRIMITIVES
+   Raw values. No meaning attached. Never used directly outside this file.
+   ========================================================================== */
+
+:root {
+
+  /* --- Clay ---------------------------------------------------------------
+     The brand hue, ~24deg. 500 is the value the foundation already uses.
+     700 exists because 500 fails contrast as small text; 300 exists so dark
+     mode has something to reach for later.                                  */
+
+  --clay-050: #f8f4f2;
+  --clay-100: #eee7e2;
+  --clay-200: #ddcfc5;
+  --clay-300: #c7ac98;   /* 5.04:1 on ink — reserved for dark mode */
+  --clay-400: #b5977f;
+  --clay-500: #a3826c;   /* brand value. 3.06:1 on paper — large text only */
+  --clay-600: #8d6a52;   /* 4.23:1 on paper — still fails AA, see comparison */
+  --clay-700: #85624b;   /* 4.75:1 on paper, 5.46:1 under white — passes AA */
+  --clay-800: #654a38;
+  --clay-900: #45301f;
+
+  /* --- Ink ----------------------------------------------------------------
+     Neutral, warmed by a trace of red to sit with clay. 900 is the brand
+     value used for body copy.                                              */
+
+  --ink-100: #e2e0de;
+  --ink-200: #c9c7c5;
+  --ink-300: #aba9a7;
+  --ink-400: #84817e;   /* ~3:1 on paper — usable for functional borders */
+  --ink-500: #6e6c6b;   /* 4.54:1 on paper — passes AA for muted text */
+  --ink-600: #5c5a5a;
+  --ink-700: #4a4948;
+  --ink-900: #3e3d3d;   /* brand value. 9.41:1 on paper */
+
+  /* --- Paper --------------------------------------------------------------
+     The warm neutral grounds. 100 is the brand page background.            */
+
+  --paper-000: #ffffff;
+  --paper-050: #f7f7f6;
+  --paper-100: #efefee;   /* brand value */
+  --paper-200: #e4e4e2;
+
+  --true-black: #000000;
+
+  /* --- Type ---------------------------------------------------------------- */
+
+  --font-display: "Epilogue", ui-sans-serif, system-ui, sans-serif;
+  --font-text:    "Poppins", ui-sans-serif, system-ui, sans-serif;
+
+  --weight-display: 500;
+  --weight-text: 400;
+
+  --tracking-display: -0.02em;
+  --tracking-text: 0em;
+
+  --leading-display: 1.2;
+  --leading-text: 1.5;
+  --leading-ui: 1.2;
+
+  /* Fluid steps. Squarespace does this with nested min()/max()/vw; clamp()
+     produces the same curve in one readable line. Floor is the mobile size,
+     ceiling is the value from the current site.                            */
+
+  --size-h1: clamp(2.5rem, 1.4rem + 4.4vw, 4rem);
+  --size-h2: clamp(1.9rem, 1.3rem + 2.6vw, 2.8rem);
+  --size-h3: clamp(1.6rem, 1.25rem + 1.6vw, 2.2rem);
+  --size-h4: clamp(1.3rem, 1.15rem + 0.7vw, 1.6rem);
+  --size-lead: clamp(1.15rem, 1.05rem + 0.5vw, 1.4rem);
+  --size-body: 1rem;
+  --size-fine: 0.9rem;
+  --size-site-title: 1.5rem;
+
+  /* --- Space --------------------------------------------------------------
+     The current site has no spacing scale, which is why the form field gap
+     (20px) and the control gap (16px) don't relate. This is a 4px base.    */
+
+  --space-1: 0.25rem;   /*  4px */
+  --space-2: 0.5rem;    /*  8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;    /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+  --space-24: 6rem;     /* 96px */
+
+  /* --- Shape --------------------------------------------------------------- */
+
+  --radius-btn: 6.4px;
+  --radius-field: 20px;
+  --radius-none: 0px;
+
+  /* --- Layout -------------------------------------------------------------- */
+
+  --page-max: 1400px;
+  --gutter: 4vw;
+
+  /* --- Motion -------------------------------------------------------------- */
+
+  --duration: 0.65s;
+  --delay: 0.6s;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 767px) {
+  :root { --gutter: 6vw; }
+}
+
+
+/* ==========================================================================
+   TIER 2 — SEMANTIC
+   Role, not appearance. This is the only tier that changes between light and
+   dark, and the only tier components are allowed to read from.
+   ========================================================================== */
+
+:root {
+
+  /* --- Surfaces ----------------------------------------------------------- */
+
+  --surface:          var(--paper-100);   /* the page */
+  --surface-sunken:   var(--paper-200);   /* wells, inset bands */
+  --surface-raised:   var(--paper-000);   /* cards, form fields, header */
+  --surface-accent:   var(--clay-500);    /* the clay band */
+  --surface-inverse:  var(--ink-900);     /* the dark band */
+
+  /* --- Text --------------------------------------------------------------- */
+
+  --text:             var(--ink-900);
+  --text-muted:       var(--ink-500);     /* 4.54:1 — meta, captions */
+  --text-display:     var(--ink-900);     /* h1, h2 */
+  --text-accent:      var(--clay-500);    /* h3, h4 — large text only */
+  --text-on-accent:   var(--paper-000);
+  --text-on-inverse:  var(--paper-000);
+
+  /* --- Interactive --------------------------------------------------------
+     CONTRAST SWITCH. This is the decision from the comparison page.
+     Set to --clay-500 to preserve the exact current appearance and accept
+     the AA failures; set to --clay-700 to pass. Nothing else needs editing.
+                                                                             */
+  --interactive:      var(--clay-700);
+  --interactive-hover: var(--clay-800);
+  --interactive-text: var(--paper-000);
+
+  --link:             var(--interactive);
+  --link-hover:       var(--interactive-hover);
+
+  /* --- Lines and edges ---------------------------------------------------- */
+
+  --border-subtle:    var(--ink-200);     /* decorative hairlines */
+  --border-strong:    var(--ink-400);     /* form fields, functional edges */
+  --divider:          var(--clay-500);    /* the line block on the live site */
+
+  /* --- Focus -------------------------------------------------------------
+     The live site has no focus token; it borrows the nav link color. Naming
+     it means it survives a navigation restyle.                             */
+
+  --focus-ring:       var(--ink-900);
+  --focus-width:      2px;
+  --focus-offset:     4px;
+
+  /* --- Status ------------------------------------------------------------
+     Absent from the live site — form errors currently render in Squarespace's
+     hardcoded #bd0000. These are proposals, tuned to sit with the palette
+     rather than fight it. Replace if the board has opinions.               */
+
+  --status-error:     #8f2f24;
+  --status-error-bg:  #f4dedb;
+  --status-success:   #2c4d33;
+  --status-success-bg:#e2ece4;
+  --status-warning:   #7a5518;
+  --status-warning-bg:#f5e9d3;
+}
+
+
+/* --------------------------------------------------------------------------
+   DARK MODE — SCAFFOLD ONLY. Not enabled.
+
+   The ramp steps it needs already exist (clay-300 measures 5.04:1 on ink).
+   To turn it on: delete the comment markers, verify every pair, and add
+   <meta name="color-scheme" content="light dark"> to the document head.
+
+   Note what does NOT change: no component rule below needs touching, because
+   components only read Tier 2. That is the whole point of the split.
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface:          var(--ink-900);
+    --surface-sunken:   #333232;
+    --surface-raised:   var(--ink-700);
+    --surface-accent:   var(--clay-800);
+    --surface-inverse:  var(--paper-100);
+
+    --text:             var(--paper-100);
+    --text-muted:       var(--ink-300);
+    --text-display:     var(--paper-000);
+    --text-accent:      var(--clay-300);
+    --text-on-accent:   var(--paper-000);
+    --text-on-inverse:  var(--ink-900);
+
+    --interactive:      var(--clay-300);
+    --interactive-hover: var(--clay-200);
+    --interactive-text: var(--ink-900);
+
+    --border-subtle:    var(--ink-700);
+    --border-strong:    var(--ink-500);
+    --divider:          var(--clay-400);
+
+    --focus-ring:       var(--paper-100);
+  }
+}
+-------------------------------------------------------------------------- */
+
+
+/* ==========================================================================
+   SECTION THEMES — relative, not absolute.
+
+   The live site has ten absolute themes (white, black, bright...). Absolute
+   names break the moment dark mode arrives: a section named "white" has to
+   stay white or stop meaning anything.
+
+   These four are relative to the current mode, so they survive it. Mapping
+   from the old names:
+     white, light        -> default (no attribute needed)
+     white-bold          -> emphasis
+     dark, black,
+     dark-bold, black-bold -> inverse
+     bright              -> accent
+     bright-inverse      -> default with accent text
+   ========================================================================== */
+
+[data-theme="emphasis"] {
+  --surface: var(--surface-raised);
+  --text: var(--text-display);
+  --text-accent: var(--interactive);
+}
+
+[data-theme="inverse"] {
+  --surface: var(--surface-inverse);
+  --text: var(--text-on-inverse);
+  --text-display: var(--text-on-inverse);
+  --text-muted: var(--ink-300);
+  --text-accent: var(--clay-300);
+  --interactive: var(--clay-300);
+  --interactive-text: var(--ink-900);
+  --border-subtle: var(--ink-700);
+  --focus-ring: var(--paper-100);
+}
+
+[data-theme="accent"] {
+  --surface: var(--surface-accent);
+  --text: var(--text-on-accent);
+  --text-display: var(--text-on-accent);
+  --text-muted: var(--clay-100);
+  --text-accent: var(--text-on-accent);
+  --interactive: var(--paper-000);
+  --interactive-text: var(--clay-700);
+  --border-subtle: var(--clay-400);
+  --focus-ring: var(--paper-000);
+}
+
+[data-theme] {
+  background-color: var(--surface);
+  color: var(--text);
+}
+
+
+/* ==========================================================================
+   TIER 3 — COMPONENTS
+   Thin. Only reads Tier 2. Add a token above rather than a value here.
+   ========================================================================== */
+
+html { font-size: 16px; }
+
+body {
+  margin: 0;
+  background-color: var(--surface);
+  color: var(--text);
+  font-family: var(--font-text);
+  font-weight: var(--weight-text);
+  font-size: var(--size-body);
+  line-height: var(--leading-text);
+  letter-spacing: var(--tracking-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  line-height: var(--leading-display);
+  letter-spacing: var(--tracking-display);
+  margin: var(--space-8) 0 var(--space-4);
+}
+
+h1 { font-size: var(--size-h1); color: var(--text-display); }
+h2 { font-size: var(--size-h2); color: var(--text-display); }
+h3 { font-size: var(--size-h3); color: var(--text-accent); }
+h4 { font-size: var(--size-h4); color: var(--text-accent); }
+
+p { margin: 0 0 var(--space-4); max-width: 68ch; }
+.lead { font-size: var(--size-lead); }
+.fine { font-size: var(--size-fine); color: var(--text-muted); }
+
+a { color: var(--link); text-underline-offset: 0.2em; }
+a:hover { color: var(--link-hover); }
+
+:focus-visible {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--divider);
+  margin: var(--space-12) 0;
+}
+
+/* --- Layout -------------------------------------------------------------- */
+
+.page {
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.section { padding-block: var(--space-24); }
+
+/* --- Buttons -------------------------------------------------------------
+   Rank is height and border, not color. All three use --interactive.       */
+
+.btn {
+  display: inline-block;
+  font-family: var(--font-text);
+  font-size: var(--size-body);
+  line-height: var(--leading-ui);
+  text-align: center;
+  text-decoration: none;
+  border-radius: var(--radius-btn);
+  border: 0;
+  cursor: pointer;
+}
+
+.btn--primary {
+  background: var(--interactive);
+  color: var(--interactive-text);
+  padding: 1.5em 2em;
+}
+.btn--primary:hover { background: var(--interactive-hover); color: var(--interactive-text); }
+
+.btn--secondary {
+  background: var(--interactive);
+  color: var(--interactive-text);
+  padding: 1.2em 2em;
+  border: 1px solid var(--interactive-text);
+}
+
+.btn--tertiary {
+  background: transparent;
+  color: var(--interactive);
+  padding: 1.2em 0;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+/* --- Form controls -------------------------------------------------------
+   The asymmetric corner is the system's one piece of signature geometry.
+   Inputs only. Putting it on cards turns a detail into a motif.            */
+
+.field { margin-bottom: var(--space-5); }
+
+.field__label {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-size: var(--size-body);
+}
+
+.field__input {
+  width: 100%;
+  font-family: var(--font-text);
+  font-size: var(--size-body);
+  color: var(--text);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-none) var(--radius-field) var(--radius-field) var(--radius-field);
+  padding: 10px var(--space-5);
+}
+
+.field__input::placeholder { color: var(--text-muted); }
+
+.field--invalid .field__input { border-color: var(--status-error); }
+.field__error {
+  margin-top: var(--space-1);
+  font-size: var(--size-fine);
+  color: var(--status-error);
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: var(--space-4);
+}
+
+.control__box {
+  inline-size: 25px;
+  block-size: 25px;
+  flex: 0 0 auto;
+  background: var(--surface-raised);
+  border: 3px solid var(--border-strong);
+  border-radius: var(--radius-none) var(--radius-field) var(--radius-field) var(--radius-field);
+}
+
+.control input:checked + .control__box {
+  background: var(--interactive);
+  border-color: var(--interactive);
+}
+
+/* --- Motion --------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+/* ==========================================================================
+   STILL OPEN
+
+   - Elevation. No shadow tokens. The system is flat, which is defensible,
+     but record it as a decision rather than an omission.
+   - Status colors above are proposals, not extracted values.
+   - Type scale floors are estimates. Measure a real page at 375px before
+     committing to the clamp() minimums.
+   ========================================================================== */

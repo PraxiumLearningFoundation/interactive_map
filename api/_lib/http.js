@@ -13,7 +13,12 @@ function readJsonBody(req) {
 }
 
 function sendJson(res, status, payload) {
-  res.status(status).setHeader('Content-Type', 'application/json').end(JSON.stringify(payload));
+  res
+    .status(status)
+    .setHeader('Content-Type', 'application/json; charset=utf-8')
+    .setHeader('Cache-Control', 'no-store')
+    .setHeader('X-Content-Type-Options', 'nosniff')
+    .end(JSON.stringify(payload));
 }
 
 function methodNotAllowed(res, allowed) {

@@ -14,7 +14,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
+          cache: npm
+
+      - name: Verify dependency lockfile
+        run: npm ci --ignore-scripts
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
 
       - name: Validate JSON files
         run: |
@@ -23,16 +30,10 @@ jobs:
             node -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))"
           done
 
-      - name: Check inline script syntax in organization-network-map.html
+      - name: Check public map JavaScript syntax
         run: |
-          node -e "
-          const fs = require('fs');
-          const html = fs.readFileSync('organization-network-map.html', 'utf8');
-          const match = html.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/);
-          if (!match) { console.error('Could not find inline script block'); process.exit(1); }
-          new Function(match[1]);
-          console.log('Inline script syntax OK');
-          "
+          node --check map.js
+          node --check network-data.js
 
       - name: Check admin-editor/app.js syntax
         run: node --check admin-editor/app.js
@@ -56,3 +57,8 @@ jobs:
 
       - name: Run api/ unit tests (mocked Gist backend)
         run: node test/api.test.js
+
+      - name: Run public map data tests
+        run: |
+          node test/public-assets.test.js
+          node test/network-data.test.js

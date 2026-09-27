@@ -1,217 +1,273 @@
-# Praxium Interactive Network Map
+# Praxium Global Network Map
 
-Professional documentation for the Praxium interactive map project.
+A polished, accessible Leaflet experience for showing the Praxium Learning Foundation's allies, partners, locations, focus areas, and mapped relationships. The public map is intentionally static so it can be hosted on GitHub Pages and embedded safely in Squarespace or another website builder.
 
-**Purpose**
+## Architecture
 
-This repository contains a small, static front-end interactive map (Leaflet) that visualizes organizations and their connections. The map is data-driven: organization data is stored as a single JSON array and can be updated by an administrator using the included admin JSON editor.
+The repository has three related surfaces:
 
-**Contents**
+1. **Public impact map** — GitHub Pages
+   - `organization-network-map.html` — semantic page structure and metadata
+   - `praxium-tokens-v2.css` — shared Praxium paper/ink/clay design tokens
+   - `map.css` — responsive visual system for desktop, mobile, and iframes
+   - `map.js` — map interactions, filters, theme, status handling, and embed API
+   - `network-data.js` — reusable validation, normalization, metrics, and connection de-duplication
+   - `categories.json` / `categories.legacy.js` — canonical categories and the `file://` fallback
+2. **Board publishing admin** — currently implemented for Vercel Functions
+   - `admin/` — passphrase login and form-driven editor
+   - `api/` — authentication, Gist publishing, and geocoding functions
+3. **Offline/bulk editor**
+   - `admin-editor/` — browser-based JSON editor
+   - `electron/` — desktop wrapper and native file operations
 
-- `organization-network-map.html` — Primary embeddable interactive map page. Loads data from `DATA_URL` (configurable in the file) and renders markers, connections, legend, and filters. Supports light/dark tile layers and a programmatic API (`window.praxiumNetwork`).
-- `organization-network-map.json` — Example/sample dataset (array of organization objects).
-- `organization-map.html` — Alternate map layout (if present); similar behavior and data loading.
-- `admin-editor/` — Small static admin UI to edit, paste, load, and export the JSON dataset (offline/bulk-edit path — see "Admin workflow" below).
-  - `admin-editor/index.html` — Admin UI page.
-  - `admin-editor/app.js` — Editor logic: parsing, edit/add/delete, copy/download JSON.
-  - `admin-editor/styles.css` — Editor styling.
-  - `admin-editor/README.md` — Quick local instructions for admin editor.
-- `admin/` — Web-based board admin (recommended path): passphrase login, add/edit/delete organization form with geocoding, publishes straight to the Gist. Deployed as its own Vercel project — see "Board publishing admin (Vercel)" below.
-- `api/` — Vercel serverless functions backing `admin/`: `auth.js`, `gist.js`, `geocode.js`, `publish.js`, `logout.js`, plus shared helpers in `api/_lib/`.
-- `test/api.test.js` — Functional tests for the `/api` functions against an in-memory fake Gist (run with `node test/api.test.js`; also runs in CI).
-- `categories.json` — Canonical categories list used by the admin editor, the web admin, and the map to keep category names consistent and ordered. `categories.js` / `categories.legacy.js` are auto-generated from it.
+Organization records continue to live in the public GitHub Gist configured by the `praxium-data-url` meta tag in `organization-network-map.html`.
 
+`praxium-contrast-comparison.html` is the retained design rationale for the
+accessible clay split: `#A3826C` remains the recognizable display/decorative
+color, while `#85624B` is used for small interactive text and button fills.
 
-Getting started (local testing)
+## What the public map now communicates
 
-1. Open a simple static HTTP server from the project root. Many browsers block cross-file fetches when opening `file://`.
+- A branded impact narrative instead of a utility-only map
+- Live counts for organizations, focus areas, locations/countries, and mapped relationships
+- Search and category filtering with visible result counts and empty states
+- Clickable, keyboard-accessible organization cards and map markers
+- De-duplicated relationship lines, including support for one-way legacy connection data
+- Secure popup rendering: untrusted Gist content is inserted as text, not executable HTML
+- Website-matching light mode by default, an optional token-consistent dark
+  mode, full-network reset, mobile explorer drawer, legend, and expand control
+- Website-aligned Epilogue/Poppins typography, warm paper/ink surfaces, accessible
+  clay interactions, and the same asymmetric field shape used by the main site
+- Last-known-good local cache plus clear stale/error messages when the Gist is unavailable
+- Parent-page messages for iframe integrations and a stable `window.praxiumNetwork` API
 
-- Python 3 (recommended):
+The current live data has no mapped connections, so connection metrics and the relationship key stay hidden until the board records real relationships. This avoids claiming impact that the dataset does not yet support.
 
-```powershell
-# from project root
-python -m http.server 8000
-# then open http://localhost:8000/organization-network-map.html
-```
+## Local development
 
-- Node (http-server):
+Node.js 22.12+ is required for the current Electron toolchain. The public map
+itself has no build step.
 
 ```bash
-npm install -g http-server
-http-server -p 8000
+# If you use nvm, this selects the version recorded in .nvmrc
+nvm use
+
+# Install the locked dependencies
+npm ci
+
+# Validate JavaScript syntax and run all automated tests
+npm run validate
+
+# Build an unpacked desktop app for the current platform
+npm run pack
+
+# Serve the repository with any static web server, then open the map page
+python3 -m http.server 8000
+# http://localhost:8000/organization-network-map.html
 ```
 
-2. Open `http://localhost:8000/organization-network-map.html` in your browser.
+Opening with `file://` is not recommended because browsers may block JSON requests. The map can still use `categories.legacy.js` as a category fallback in that environment.
 
-3. To test the admin editor, open `http://localhost:8000/admin-editor/index.html`.
+## Public data model
 
+Each Gist entry should follow this shape:
 
-Admin workflow (update data)
-
-There are three ways to update the dataset the map uses, in order of recommendation:
-
-A) Web admin (recommended for routine, single-organization edits)
-- A board member goes to the deployed `/admin` page (see "Board publishing admin (Vercel)" below), logs in with the shared passphrase, and uses a simple form (name, website, address, category, description, contact, connections) to add, edit, or delete an organization.
-- The address is automatically geocoded to a map pin (editable/draggable if the match is off).
-- No JSON, no GitHub UI — the board member just clicks Publish and the change goes live on the map within moments.
-
-B) Electron desktop admin editor (offline use or bulk edits)
-- Open `admin-editor/index.html` (or the packaged desktop app — see "Desktop Application" below), paste or load your dataset, click `Parse & Preview`.
-- Use the editor UI to Add/Edit/Delete organizations. When finished, use `Copy JSON` or `Download JSON` to get the updated JSON.
-- Paste or upload the exported JSON to your hosted Gist. Useful when you're offline, or doing a large batch of edits where going through the web admin's geocoding/publish round-trip per organization would be slow.
-
-C) Manual Gist edit (emergency fallback)
-- Edit the Gist's JSON directly at gist.github.com. `DATA_URL` in `organization-network-map.html` points at the Gist's stable "latest" raw URL, so any edit saved there appears on the map automatically (no need to update `DATA_URL` again).
-
-Notes on categories
-- `categories.json` defines the canonical category list used by the admin editor and the map. The admin editor pre-selects canonical categories and supports a `Custom...` option for one-off values.
-- The map reads this file (when available) to order the legend and filter options and to assign the 20-color palette deterministically.
-- `categories.js` and `categories.legacy.js` are auto-generated from `categories.json` — don't hand-edit them, regenerate them from `categories.json` instead.
-
-Board publishing admin (Vercel)
-
-The `/admin` page and its backing `/api` functions are a separate deployment from the public map (the map keeps its existing hosting/URL unchanged). Deploy this repo as its own Vercel project to get a working board admin.
-
-Setup:
-1. In the Vercel dashboard, import this GitHub repo as a new project. Vercel auto-detects the `/api/*.js` files as serverless functions and serves `/admin/*` as static files; `vercel.json` at the repo root disables the install step (the functions use only Node built-ins, no dependencies) and redirects `/` to `/admin`.
-2. Set these Environment Variables on the Vercel project (Project Settings → Environment Variables), scoped to Production (and Preview if you want PR preview deployments to work):
-   - `GITHUB_PAT` — a GitHub personal access token scoped to **gist read/write only** (fine-grained token, gist scope), used to read and update the Gist. Never commit this token or put it in client-side code.
-   - `GIST_ID` — the Gist's ID, e.g. `a139fdb216bcc3e91b67754c283f3805`.
-   - `ADMIN_PASSPHRASE` — the shared passphrase board members use to log in to `/admin`.
-   - `SESSION_SECRET` — a random 32+ byte string used to sign the admin session cookie (e.g. `openssl rand -hex 32`). Keep this distinct from the passphrase.
-3. Deploy. Visit `https://<your-vercel-project>.vercel.app/admin`, log in with the passphrase, and confirm the organization list loads from the Gist.
-
-How it works:
-- `/api/auth` checks the passphrase (rate-limited) and issues a short-lived, signed, `HttpOnly` session cookie — no per-user accounts.
-- `/api/gist` (session required) reads the current Gist contents plus `categories.json`, to populate the admin's org list and category dropdown.
-- `/api/geocode` (session required) proxies address lookups to OpenStreetMap Nominatim server-side, so the browser never calls Nominatim directly.
-- `/api/publish` (session required) re-fetches the Gist fresh, checks the client's `expectedVersion` against it (returns `409` if the Gist changed since the client last loaded it — reload and reapply rather than risk overwriting a concurrent edit), validates the submitted organization, applies create/update/delete (including keeping `connections` symmetric between linked organizations, and stripping a deleted organization's ID out of every other organization's `connections`), and writes the result back to the Gist.
-- The `GITHUB_PAT` and `SESSION_SECRET` never leave the server — they're read from environment variables inside the `/api` functions and are never sent in any response to the browser.
-- Run `node test/api.test.js` to exercise the publish/auth/gist logic against an in-memory fake Gist (no real GitHub calls, safe to run anytime); this also runs in CI on every push/PR.
-
-Embedding on Squarespace (or other website builders)
-
-- The project is a static HTML page. To embed into a Squarespace page, you have two common approaches:
-  1. Host `organization-network-map.html` on a static host (GitHub Pages, Netlify, etc.) and use Squarespace’s Embed block or an iframe to embed the hosted page. Example iframe:
-
-```html
-<iframe src="https://your-host.example/organization-network-map.html" width="100%" height="600" style="border:0;"></iframe>
+```json
+{
+  "id": 1,
+  "name": "Organization name",
+  "location": "City, region, country",
+  "country": "Canada",
+  "coordinates": [49.2827, -123.1207],
+  "category": "Non-Profit",
+  "description": "Public-facing description of the organization.",
+  "relationship": "Optional explanation of how this organization and Praxium work together.",
+  "contact": {
+    "website": "https://example.org/",
+    "email": "optional@example.org",
+    "phone": "+1 555 555 5555"
+  },
+  "connections": [2, 3]
+}
 ```
 
-  2. Copy the map page HTML into a Code Block (if your site supports full HTML/JS injection) — typically not recommended because of third-party restrictions and script sanitization.
+### Field guidance
 
-- Recommended: host the files (HTML, categories.json, JSON data) somewhere reliable (GitHub Pages or similar) and embed via iframe in Squarespace.
+- `id` must be a unique positive integer.
+- `coordinates` must be `[latitude, longitude]` within valid ranges.
+- `category` should come from `categories.json` unless a deliberate custom category is needed.
+- `country` is optional but recommended. When more than one explicit country is present, the impact card reports countries; otherwise it conservatively reports unique locations.
+- `relationship` is optional but highly recommended. It turns a directory entry into an impact story by explaining the actual collaboration.
+- `connections` contains organization IDs. The web admin keeps these links reciprocal, but the public map also handles one-way legacy links and draws each pair only once.
+- Website links are limited to `http`/`https`; malformed or unsafe schemes are ignored.
 
-GitHub Pages hosting (built in)
+Invalid individual records are skipped without taking down the entire map. Unknown/self/duplicate connections are ignored, and warnings are surfaced without exposing technical details to visitors.
 
-- `.github/workflows/static.yml` automatically publishes the map to GitHub Pages on every push to `main` that touches `organization-network-map.html`, `categories.json`, or `categories.legacy.js`.
-- It only publishes those three files — **not** the whole repo — so `/admin` and `/api` (which have no backend to run on static Pages anyway) are never exposed there.
-- Once enabled (Settings → Pages → Source: GitHub Actions, already configured for this repo), the map is live at:
+## Publishing the public map with GitHub Pages
 
-```
+`.github/workflows/static.yml` deploys only the public assets on changes to `main`:
+
+- `organization-network-map.html` (also copied to `index.html`)
+- `praxium-tokens-v2.css`
+- `map.css`
+- `map.js`
+- `network-data.js`
+- `categories.json`
+- `categories.legacy.js`
+
+The admin UI, serverless functions, local sample data, and repository files are not included in the Pages artifact.
+
+Production URLs:
+
+```text
+https://praxiumlearningfoundation.github.io/interactive_map/
 https://praxiumlearningfoundation.github.io/interactive_map/organization-network-map.html
 ```
 
-- Use that URL directly in the iframe example above as another hosting option alongside wherever the map is already embedded.
+Use pull requests rather than pushing feature work directly to `main`; CI validates JSON, checks JavaScript syntax, and runs the public-map and API tests before merge.
 
-Developer notes
+## Embedding in Squarespace or another site
 
-- DATA_URL: The map page looks for a `DATA_URL` constant near the top of `organization-network-map.html`. Set that to the raw JSON URL of your hosted dataset.
+Recommended embed:
 
-- window.praxiumNetwork API (available on the map page):
-  - `window.praxiumNetwork.exportData()` → returns JSON string of current data
-  - `window.praxiumNetwork.importData(jsonString)` → imports and reloads data
-  - `window.praxiumNetwork.addOrganization(org)` → adds an org object and returns new id
+```html
+<iframe
+  src="https://praxiumlearningfoundation.github.io/interactive_map/"
+  title="Praxium Global Network of allies and partners"
+  width="100%"
+  height="720"
+  loading="lazy"
+  allow="fullscreen"
+  style="display:block;width:100%;border:0;border-radius:20px;overflow:hidden;"
+></iframe>
+```
 
-- Colors and categories:
-  - The map uses a 20-color palette and assigns colors deterministically based on the ordered category list.
-  - `categories.json` controls canonical ordering and is used by both the admin editor and the map.
+Notes:
 
-- Dark mode: the map supports a dark tile layer and a toggle; it also slightly adjusts marker colors for improved contrast in dark mode.
+- `allow="fullscreen"` lets the phone expand control use the browser Fullscreen API where the host permits it.
+- If a host blocks fullscreen, the control still expands within the iframe viewport.
+- Give the embed enough height to show the story and explorer comfortably (roughly 650–800 px on desktop). The mobile design intentionally prioritizes the map and opens the organization explorer as a drawer.
+- Keep the iframe title; it identifies the map for screen-reader users.
 
-- CORS: If the hosted JSON or `categories.json` is served without permissive CORS headers, the browser may block fetch requests. Use a static host that sets appropriate headers (GitHub Pages, Netlify) or host on the same domain as your site to avoid CORS issues.
+The map emits optional parent-window messages with `source: "praxium-network-map"` and these types:
 
-Troubleshooting
+- `ready` — data has finished loading
+- `selection` — an organization was selected or cleared
+- `resize` — the map shell's measured height changed
 
-- Map shows no points:
-  - Confirm `DATA_URL` is set correctly and returns a JSON array of organizations.
-  - Check browser devtools network tab for fetch errors (CORS, 404).
+A host page may listen for those events if it wants custom analytics or iframe resizing. Because `postMessage` cannot safely guess the final production parent origin, receiving pages should always validate `event.origin` and `event.data.source` before acting.
 
-- Admin Editor does not load sample:
-  - When running from `file://`, fetch may be blocked. Run a local HTTP server (see above) or use the file input or paste JSON into the editor.
+## Public JavaScript API
 
-- Category mismatches:
-  - If legacy data uses inconsistent category spellings (e.g., "Non Profit" vs "Non-Profit"), use the admin editor to normalize the values or update `categories.json` to include expected variants. I can add an automatic mapping to canonical names on import if preferred.
+Available after `map.js` loads:
 
-Contributing / Extending
+```js
+await window.praxiumNetwork.ready;
+window.praxiumNetwork.getMetrics();
+window.praxiumNetwork.selectOrganization(3);
+window.praxiumNetwork.resetView();
+window.praxiumNetwork.exportData();
+window.praxiumNetwork.importData(jsonStringOrArray);
+window.praxiumNetwork.addOrganization(organizationObject);
+```
 
-- To change the canonical categories, edit `categories.json`. The admin editor, the web admin, and the map will all read it and use the updated list when loaded (regenerate `categories.js`/`categories.legacy.js` from it — see "Notes on categories" above).
-- To change the color palette, edit the `COLOR_PALETTE` array in `organization-network-map.html`.
-- Server-side publishing (automatic Gist updates from the board admin) is implemented — see "Board publishing admin (Vercel)" above.
+The original `exportData`, `importData`, and `addOrganization` entry points remain available for compatibility.
 
----
+## Updating data
 
-## Desktop Application (Electron)
+### A. Web admin — recommended for routine edits
 
-The admin editor can be packaged as a standalone desktop application using Electron.
+The `/admin` interface lets a board member log in, create/edit/delete organizations, geocode addresses, select relationships by organization name, and publish to the Gist without seeing JSON or a GitHub token.
 
-### Download Pre-built Releases
+Required environment variables:
 
-**No installation of Node.js or Python required!**
+- `GITHUB_PAT` — Gist read/write token; never expose it to browser code
+- `GIST_ID` — production Gist ID
+- `ADMIN_PASSPHRASE` — shared board passphrase
+- `SESSION_SECRET` — random 32+ byte cookie-signing secret
 
-Download the latest release for your platform from the [Releases page](https://github.com/PraxiumLearning03/interactive_map/releases):
+Current implementation details:
 
-| Platform | Download |
-|----------|----------|
-| Windows | `Praxium-Map-Editor-x.x.x-Windows.exe` (installer) or `...-Portable.exe` |
-| macOS | `Praxium-Map-Editor-x.x.x-macOS.dmg` |
-| Linux | `Praxium-Map-Editor-x.x.x-Linux.AppImage` or `.deb` |
+- Signed, secure, `HttpOnly`, `SameSite=Strict` session cookie
+- Passphrase attempt limiting
+- Server-side validation of required fields, URLs, categories, and coordinate ranges
+- Server-side Nominatim geocoding throttle
+- Optimistic concurrency using the Gist version (`409` on stale edits)
+- Reciprocal relationship maintenance and deleted-ID cleanup
+- Mocked-Gist API tests in `test/api.test.js`
 
-### For Developers
+### B. Offline or bulk editor
 
-If you want to run from source or build locally:
+Open `admin-editor/index.html` through a local server or run the Electron app:
 
 ```bash
-# Install dependencies
 npm install
-
-# Run the desktop app in development mode
 npm start
 ```
 
-### Building Installers Locally
+The editor supports paste/load, form editing, copy, and JSON download. Packaged desktop builds are configured through Electron Builder.
+
+### C. Direct Gist edit — emergency fallback
+
+The data URL points to the stable latest Gist path. Saving a valid edit to the production Gist makes it available to the map on the next refresh without redeploying the public site.
+
+## Azure migration path for the admin
+
+GitHub Pages remains a good fit for the public map: it is static, free, versioned, and does not expose the admin backend. Migrate only the authenticated admin/API unless there is a separate reason to move the public map.
+
+As of September 5, 2026, Microsoft documents a $2,000 USD annual Azure grant
+for eligible nonprofits. It must be renewed, unused credit does not roll over,
+and use beyond the grant can become pay-as-you-go. Add a budget and alerts
+before deploying production resources.
+
+A practical Azure target is:
+
+1. **Azure Static Web Apps** for `admin/` and the serverless API, deployed from the same GitHub repository.
+2. Keep the existing Gist as the first migration milestone so the public map URL and data contract do not change.
+3. Store `GITHUB_PAT`, `GIST_ID`, `ADMIN_PASSPHRASE`, and `SESSION_SECRET` in Azure application settings (or Key Vault when the nonprofit environment is ready).
+4. Port the Vercel-style request/response adapters in `api/` to Azure Functions handlers while preserving the tested validation/publishing functions.
+5. Replace the shared passphrase with Microsoft Entra ID and restrict access to the Praxium tenant or an explicit administrator role.
+6. Validate login, Gist read, geocoding, create/update/delete, and the deliberate two-tab conflict test in a staging environment.
+7. Cut the admin URL over only after the staging checklist passes; the public GitHub Pages iframe can stay unchanged.
+
+A later phase could move structured data from a Gist to Azure Storage or
+Cosmos DB when Praxium needs richer audit, reporting, or approval workflows.
+That is an operational upgrade, not a prerequisite for presenting the network
+professionally.
+
+See `docs/PROFESSIONALIZATION_ROADMAP.md` for the full content, security,
+acceptance-testing, cost-control, and cutover plan.
+
+## Testing and CI
 
 ```bash
-# Build for current platform
-npm run dist
-
-# Build for specific platforms
-npm run dist:win    # Windows (.exe installer)
-npm run dist:mac    # macOS (.dmg)
-npm run dist:linux  # Linux (.AppImage)
+npm run check       # JavaScript syntax checks
+npm test            # network-data and mocked API tests
+npm run validate    # both of the above
 ```
 
-Built packages will be output to the `dist/` folder.
+GitHub Actions:
 
-### Desktop App Features
+- `.github/workflows/ci.yml` — validation on pull requests and `main`
+- `.github/workflows/static.yml` — public Pages deployment
+- `.github/workflows/build-release.yml` — Electron release artifacts
 
-- Native file dialogs for opening/saving JSON files
-- Menu bar with keyboard shortcuts (Ctrl+O, Ctrl+S, etc.)
-- Load sample data from bundled file
-- Cross-platform support (Windows, macOS, Linux)
+## Security and operational notes
 
-### Creating a New Release
+- Never commit tokens, recovery codes, signing keys, or `.env` files. The repository `.gitignore` excludes the known local secret files.
+- The public map treats Gist content as untrusted input and avoids `innerHTML` for organization-provided values.
+- The local cache is availability fallback only; visitors are explicitly told when cached data is being shown.
+- OpenStreetMap tiles require visible attribution, which remains on the map.
+- Nominatim's public service is appropriate for low-volume board edits, not bulk geocoding.
+- Before publishing a new impact number, make sure the supporting fields are actually maintained in the data. The interface intentionally computes only defensible metrics.
 
-1. Update the version in `package.json`
-2. Commit your changes
-3. Create and push a tag:
-   ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
-   ```
-4. GitHub Actions will automatically build and attach installers to the release
+## Recommended next content step
 
-See [electron/README.md](electron/README.md) for more details.
+The biggest remaining opportunity is not another animation or visual effect; it is richer verified data. For each organization, add:
 
----
-README generated on December 27, 2025.
+- explicit `country`
+- a concise `relationship` statement
+- real `connections` where a documented partnership exists
+- current website and description
+
+Those fields will let the same interface truthfully communicate global reach, collaboration density, and how Praxium's network creates impact.

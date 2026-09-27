@@ -4,6 +4,16 @@ const { readCategories } = require('./_lib/categories');
 const { readJsonBody, sendJson, methodNotAllowed } = require('./_lib/http');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const FIELD_LIMITS = Object.freeze({
+  name: 200,
+  location: 300,
+  country: 100,
+  description: 500,
+  relationship: 500,
+  website: 2048,
+  email: 254,
+  phone: 50,
+});
 
 function isValidUrl(value) {
   try {
@@ -24,8 +34,30 @@ function validateOrgPayload(org, categories) {
   if (!org || typeof org !== 'object') return ['org payload is required'];
 
   if (typeof org.name !== 'string' || !org.name.trim()) errors.push('name is required');
+  else if (org.name.trim().length > FIELD_LIMITS.name) {
+    errors.push(`name must be ${FIELD_LIMITS.name} characters or fewer`);
+  }
   if (typeof org.location !== 'string' || !org.location.trim()) errors.push('location is required');
+  else if (org.location.trim().length > FIELD_LIMITS.location) {
+    errors.push(`location must be ${FIELD_LIMITS.location} characters or fewer`);
+  }
   if (typeof org.description !== 'string' || !org.description.trim()) errors.push('description is required');
+  else if (org.description.trim().length > FIELD_LIMITS.description) {
+    errors.push(`description must be ${FIELD_LIMITS.description} characters or fewer`);
+  }
+  if (org.country !== undefined && typeof org.country !== 'string') {
+    errors.push('country must be a string');
+  } else if (typeof org.country === 'string' && org.country.trim().length > FIELD_LIMITS.country) {
+    errors.push(`country must be ${FIELD_LIMITS.country} characters or fewer`);
+  }
+  if (org.relationship !== undefined && typeof org.relationship !== 'string') {
+    errors.push('relationship must be a string');
+  } else if (
+    typeof org.relationship === 'string'
+    && org.relationship.trim().length > FIELD_LIMITS.relationship
+  ) {
+    errors.push(`relationship must be ${FIELD_LIMITS.relationship} characters or fewer`);
+  }
 
   const coords = org.coordinates;
   if (
@@ -46,13 +78,34 @@ function validateOrgPayload(org, categories) {
   }
 
   const website = org.contact && org.contact.website;
-  if (typeof website !== 'string' || !website.trim() || !isValidUrl(website)) {
+  if (
+    typeof website !== 'string'
+    || !website.trim()
+    || website.trim().length > FIELD_LIMITS.website
+    || !isValidUrl(website)
+  ) {
     errors.push('contact.website is required and must be a valid http(s) URL');
   }
 
   const email = org.contact && org.contact.email;
-  if (email !== undefined && email !== '' && !EMAIL_RE.test(String(email))) {
+  if (
+    email !== undefined
+    && email !== ''
+    && (
+      String(email).trim().length > FIELD_LIMITS.email
+      || !EMAIL_RE.test(String(email).trim())
+    )
+  ) {
     errors.push('contact.email is not a valid email address');
+  }
+
+  const phone = org.contact && org.contact.phone;
+  if (
+    phone !== undefined
+    && phone !== ''
+    && String(phone).trim().length > FIELD_LIMITS.phone
+  ) {
+    errors.push(`contact.phone must be ${FIELD_LIMITS.phone} characters or fewer`);
   }
 
   if (org.connections !== undefined) {
@@ -65,13 +118,14 @@ function validateOrgPayload(org, categories) {
 }
 
 // Builds the finalized org record (only the fields we persist) from a validated payload.
-function finalizeOrgFields(org, id) {
+function finalizeOrgFields(org, id, existing = {}) {
   const contact = {};
   if (org.contact && org.contact.website) contact.website = org.contact.website.trim();
   if (org.contact && org.contact.email) contact.email = org.contact.email.trim();
   if (org.contact && org.contact.phone) contact.phone = String(org.contact.phone).trim();
 
-  return {
+  const finalized = {
+    ...existing,
     id,
     name: org.name.trim(),
     location: org.location.trim(),
@@ -81,6 +135,20 @@ function finalizeOrgFields(org, id) {
     contact,
     connections: Array.isArray(org.connections) ? [...new Set(org.connections)].filter((cid) => cid !== id) : [],
   };
+
+  if (Object.prototype.hasOwnProperty.call(org, 'country')) {
+    const country = typeof org.country === 'string' ? org.country.trim() : '';
+    if (country) finalized.country = country;
+    else delete finalized.country;
+  }
+  if (Object.prototype.hasOwnProperty.call(org, 'relationship')) {
+    const relationship = typeof org.relationship === 'string' ? org.relationship.trim() : '';
+    if (relationship) finalized.relationship = relationship;
+    else delete finalized.relationship;
+  }
+  delete finalized.allowCustomCategory;
+
+  return finalized;
 }
 
 // Keeps `connections` symmetric: if A links to B, B should link back to A. Given the prior
@@ -96,15 +164,17 @@ function applyReciprocalConnections(organizations, orgId, previousConnections, n
 
   added.forEach((otherId) => {
     const other = byId.get(otherId);
-    if (other && !other.connections.includes(orgId)) {
-      other.connections = [...other.connections, orgId];
+    if (other) {
+      const connections = Array.isArray(other.connections) ? other.connections : [];
+      if (!connections.includes(orgId)) other.connections = [...connections, orgId];
     }
   });
 
   removed.forEach((otherId) => {
     const other = byId.get(otherId);
     if (other) {
-      other.connections = other.connections.filter((cid) => cid !== orgId);
+      const connections = Array.isArray(other.connections) ? other.connections : [];
+      other.connections = connections.filter((cid) => cid !== orgId);
     }
   });
 }
@@ -151,18 +221,32 @@ module.exports = async (req, res) => {
   let resultOrgId = null;
 
   if (mode === 'delete') {
+    if (!Number.isInteger(orgId)) return sendJson(res, 400, { error: 'organization_id_required' });
     const idx = organizations.findIndex((o) => o.id === orgId);
     if (idx === -1) return sendJson(res, 404, { error: 'organization_not_found' });
     organizations.splice(idx, 1);
     stripConnectionsTo(organizations, orgId);
   } else {
     const errors = validateOrgPayload(org, categories);
+    const knownIds = new Set(organizations.map((organization) => organization.id));
+    if (mode === 'update' && !Number.isInteger(orgId)) {
+      errors.push('organization ID is required for updates');
+    }
+    if (Array.isArray(org && org.connections)) {
+      const unknownIds = [...new Set(org.connections)].filter((id) => !knownIds.has(id));
+      if (unknownIds.length) {
+        errors.push(`connections reference unknown organization IDs: ${unknownIds.join(', ')}`);
+      }
+    }
     if (errors.length) {
       return sendJson(res, 400, { error: 'validation_failed', details: errors });
     }
 
     if (mode === 'create') {
-      const nextId = organizations.length ? Math.max(...organizations.map((o) => o.id)) + 1 : 1;
+      const validIds = organizations
+        .map((organization) => organization.id)
+        .filter((id) => Number.isSafeInteger(id) && id > 0);
+      const nextId = validIds.length ? Math.max(...validIds) + 1 : 1;
       const finalized = finalizeOrgFields(org, nextId);
       organizations.push(finalized);
       applyReciprocalConnections(organizations, nextId, [], finalized.connections);
@@ -172,7 +256,7 @@ module.exports = async (req, res) => {
       const idx = organizations.findIndex((o) => o.id === orgId);
       if (idx === -1) return sendJson(res, 404, { error: 'organization_not_found' });
       const previousConnections = organizations[idx].connections || [];
-      const finalized = finalizeOrgFields(org, orgId);
+      const finalized = finalizeOrgFields(org, orgId, organizations[idx]);
       organizations[idx] = finalized;
       applyReciprocalConnections(organizations, orgId, previousConnections, finalized.connections);
       resultOrgId = orgId;
