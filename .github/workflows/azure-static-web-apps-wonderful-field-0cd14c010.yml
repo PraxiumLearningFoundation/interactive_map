@@ -31,6 +31,12 @@ jobs:
           app_location: "/" # App source code path
           api_location: "api" # Api source code path - optional
           output_location: "" # Built app content directory - optional
+          skip_app_build: true # No build step needed — plain static HTML/CSS/JS, no bundler.
+          # Without this, Oryx auto-detects Node.js (via the root package.json, which is
+          # actually just the Electron desktop packaging manifest, unrelated to the deployed
+          # site) and fails looking for a "build" npm script that doesn't exist. This only
+          # skips the *frontend* build — the api/ Functions app still gets its normal Oryx
+          # build/npm install so @azure/functions is actually present at runtime.
           ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
