@@ -21,7 +21,12 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Audit dependencies
-        run: npm audit --audit-level=high
+        # Production-only: this project ships zero runtime npm dependencies (the
+        # API functions use Node built-ins, the frontend loads Leaflet from a CDN).
+        # electron/electron-builder are devDependencies for the desktop packaging
+        # tool only — never shipped to the deployed map/admin/API — so their
+        # transitive vulnerabilities shouldn't block every unrelated PR.
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Validate JSON files
         run: |
