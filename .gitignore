@@ -36,6 +36,10 @@ wheels/
 *.pem
 *.key
 
+# Azure Functions local development settings (holds secrets like GITHUB_PAT,
+# AZURE_CLIENT_SECRET when running `func start` locally against api/)
+api/local.settings.json
+
 # IDE
 .vscode/
 .idea/

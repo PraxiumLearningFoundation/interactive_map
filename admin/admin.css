@@ -7,29 +7,10 @@ body {
   color: #1f2937;
 }
 
-/* --- Login page --- */
-.login-body {
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.login-card {
-  background: white;
-  padding: 32px;
-  border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-  width: 320px;
-}
-.login-card h1 { font-size: 20px; margin: 0 0 4px; }
-.login-card .subtitle { margin: 0 0 20px; color: #6b7280; font-size: 14px; }
-.login-card form { display: flex; flex-direction: column; gap: 8px; }
-.login-card label { font-size: 13px; font-weight: 600; }
-.login-card input { padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
-.login-card button { margin-top: 8px; padding: 10px; border: none; border-radius: 6px; background: #2563eb; color: white; font-weight: 600; cursor: pointer; }
-.login-card button:hover { background: #1d4ed8; }
-
-/* --- Dashboard --- */
+/* --- Dashboard ---
+   The custom passphrase login page (and its .login-body/.login-card styles)
+   was removed — Microsoft Entra ID sign-in is handled entirely by Azure
+   Static Web Apps' built-in /.auth/login/aad, with no local login page. */
 #admin-header {
   display: flex;
   justify-content: space-between;

@@ -1,0 +1,41 @@
+{
+  "routes": [
+    { "route": "/", "redirect": "/admin", "statusCode": 302 },
+    {
+      "route": "/admin/*",
+      "allowedRoles": ["authenticated"],
+      "headers": {
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "no-referrer",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+        "Content-Security-Policy": "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://server.arcgisonline.com https://cdnjs.cloudflare.com; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+      }
+    },
+    {
+      "route": "/api/*",
+      "allowedRoles": ["authenticated"],
+      "headers": {
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "no-referrer",
+        "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'"
+      }
+    }
+  ],
+  "responseOverrides": {
+    "401": { "redirect": "/.auth/login/aad", "statusCode": 302 }
+  },
+  "auth": {
+    "identityProviders": {
+      "azureActiveDirectory": {
+        "registration": {
+          "openIdIssuer": "https://login.microsoftonline.com/REPLACE_WITH_PRAXIUM_TENANT_ID/v2.0",
+          "clientIdSettingName": "AZURE_CLIENT_ID",
+          "clientSecretSettingName": "AZURE_CLIENT_SECRET"
+        }
+      }
+    }
+  }
+}

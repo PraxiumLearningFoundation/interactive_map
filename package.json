@@ -6,7 +6,7 @@
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "check": "node --check map.js && node --check network-data.js && node --check admin/admin.js && node --check admin/admin-auth.js && node --check admin-editor/app.js && node --check electron/main.js && node --check electron/preload.js",
+    "check": "node --check map.js && node --check network-data.js && node --check admin/admin.js && node --check admin-editor/app.js && node --check electron/main.js && node --check electron/preload.js && for f in api/_lib/*.js api/src/functions/*.js; do node --check \"$f\" || exit 1; done",
     "test": "node test/public-assets.test.js && node test/network-data.test.js && node test/api.test.js",
     "validate": "npm run check && npm test",
     "pack": "electron-builder --dir",
