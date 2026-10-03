@@ -60,6 +60,9 @@ yarn-error.log
 dist/
 out/
 
+# Staged copy of the repo-root categories.json for the Azure Functions deploy (see workflow + pretest)
+api/categories.json
+
 # Local testing
 *.log
 .tmp-chrome/
