@@ -25,6 +25,9 @@ export default [
   "Science",
   "Senior Services",
   "Social Services",
+  "Social Work",
   "Support Group",
-  "Technology"
+  "Sustainable Tourism",
+  "Technology",
+  "Transformative Education"
 ];
