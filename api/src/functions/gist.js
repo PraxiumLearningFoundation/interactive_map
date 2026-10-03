@@ -16,10 +16,7 @@ async function gistHandler(request) {
     return jsonResponse(200, { organizations, categories, version });
   } catch (err) {
     console.error('GET /api/gist failed:', err);
-    // TEMP DEBUG (staging only): surface the real error since managed Functions
-    // logs aren't visible without Application Insights wired up. Revert once
-    // gist_fetch_failed is root-caused.
-    return jsonResponse(502, { error: 'gist_fetch_failed', debug: err.message });
+    return jsonResponse(502, { error: 'gist_fetch_failed' });
   }
 }
 
