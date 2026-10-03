@@ -46,7 +46,7 @@ async function loadData() {
   organizations = data.organizations;
   categories = data.categories;
   currentVersion = data.version;
-  lastUpdatedEl.textContent = `Last updated: ${new Date(currentVersion).toLocaleString()}`;
+  lastUpdatedEl.textContent = `Last updated: ${new Date(data.updatedAt).toLocaleString()}`;
   renderOrgList();
 }
 

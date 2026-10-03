@@ -9,11 +9,11 @@ async function gistHandler(request) {
   if (!getClientPrincipal(request)) return unauthorized();
 
   try {
-    const [{ organizations, version }, categories] = await Promise.all([
+    const [{ organizations, version, updatedAt }, categories] = await Promise.all([
       fetchGist(),
       Promise.resolve(readCategories()),
     ]);
-    return jsonResponse(200, { organizations, categories, version });
+    return jsonResponse(200, { organizations, categories, version, updatedAt });
   } catch (err) {
     console.error('GET /api/gist failed:', err);
     return jsonResponse(502, { error: 'gist_fetch_failed' });
