@@ -31,7 +31,7 @@
     "identityProviders": {
       "azureActiveDirectory": {
         "registration": {
-          "openIdIssuer": "https://login.microsoftonline.com/REPLACE_WITH_PRAXIUM_TENANT_ID/v2.0",
+          "openIdIssuer": "https://login.microsoftonline.com/5937888e-e143-44f6-92cc-3080289b15c9/v2.0",
           "clientIdSettingName": "AZURE_CLIENT_ID",
           "clientSecretSettingName": "AZURE_CLIENT_SECRET"
         }
