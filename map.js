@@ -339,6 +339,12 @@
       email.href = `mailto:${organization.contact.email}`;
       email.textContent = 'Email';
       email.setAttribute('aria-label', `Email ${organization.name}`);
+      // mailto: links only do something if the browser/OS has a mail client
+      // registered to handle them — true by default on phones, often not on
+      // desktops where people only use webmail. The title gives desktop users
+      // without one a way to see (and copy) the address via hover/right-click
+      // even when clicking the link silently does nothing.
+      email.title = organization.contact.email;
       contact.appendChild(email);
     }
 
