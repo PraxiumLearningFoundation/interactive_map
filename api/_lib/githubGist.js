@@ -70,7 +70,7 @@ async function fetchGist() {
     throw new Error('Gist file content must be a JSON array of organizations');
   }
 
-  return { organizations, version: getGistVersion(gist), raw: content };
+  return { organizations, version: getGistVersion(gist), updatedAt: gist.updated_at, raw: content };
 }
 
 // Overwrites the Gist's data file with a new array of organizations.

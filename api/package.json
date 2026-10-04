@@ -1,0 +1,16 @@
+{
+  "name": "praxium-map-admin-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Azure Functions API backing the Praxium board admin (/admin). Auth is handled entirely by Azure Static Web Apps' built-in Microsoft Entra ID integration, not by this code.",
+  "main": "src/functions/*.js",
+  "scripts": {
+    "start": "func start"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.0.0"
+  }
+}

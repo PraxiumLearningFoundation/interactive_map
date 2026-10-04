@@ -1,7 +1,8 @@
-const { requireSession } = require('./_lib/session');
-const { fetchGist, updateGist } = require('./_lib/githubGist');
-const { readCategories } = require('./_lib/categories');
-const { readJsonBody, sendJson, methodNotAllowed } = require('./_lib/http');
+const { app } = require('@azure/functions');
+const { fetchGist, updateGist } = require('../../_lib/githubGist');
+const { readCategories } = require('../../_lib/categories');
+const { getClientPrincipal } = require('../../_lib/clientPrincipal');
+const { jsonResponse, methodNotAllowed, unauthorized } = require('../../_lib/http');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const FIELD_LIMITS = Object.freeze({
@@ -188,16 +189,16 @@ function stripConnectionsTo(organizations, removedId) {
   });
 }
 
-module.exports = async (req, res) => {
-  if (req.method !== 'POST') return methodNotAllowed(res, ['POST']);
-  if (!requireSession(req)) return sendJson(res, 401, { error: 'unauthorized' });
+async function publishHandler(request) {
+  if (request.method !== 'POST') return methodNotAllowed(['POST']);
+  if (!getClientPrincipal(request)) return unauthorized();
 
-  const { mode, org, orgId, expectedVersion } = readJsonBody(req);
+  const { mode, org, orgId, expectedVersion } = await request.json().catch(() => ({}));
   if (!['create', 'update', 'delete'].includes(mode)) {
-    return sendJson(res, 400, { error: 'invalid_mode' });
+    return jsonResponse(400, { error: 'invalid_mode' });
   }
   if (!expectedVersion) {
-    return sendJson(res, 400, { error: 'expected_version_required' });
+    return jsonResponse(400, { error: 'expected_version_required' });
   }
 
   let current;
@@ -205,11 +206,11 @@ module.exports = async (req, res) => {
     current = await fetchGist();
   } catch (err) {
     console.error('publish: failed to re-fetch gist:', err);
-    return sendJson(res, 502, { error: 'gist_fetch_failed' });
+    return jsonResponse(502, { error: 'gist_fetch_failed' });
   }
 
   if (current.version !== expectedVersion) {
-    return sendJson(res, 409, {
+    return jsonResponse(409, {
       error: 'conflict',
       currentVersion: current.version,
       message: 'Data changed since you loaded it — please reload and reapply your edit.',
@@ -221,9 +222,9 @@ module.exports = async (req, res) => {
   let resultOrgId = null;
 
   if (mode === 'delete') {
-    if (!Number.isInteger(orgId)) return sendJson(res, 400, { error: 'organization_id_required' });
+    if (!Number.isInteger(orgId)) return jsonResponse(400, { error: 'organization_id_required' });
     const idx = organizations.findIndex((o) => o.id === orgId);
-    if (idx === -1) return sendJson(res, 404, { error: 'organization_not_found' });
+    if (idx === -1) return jsonResponse(404, { error: 'organization_not_found' });
     organizations.splice(idx, 1);
     stripConnectionsTo(organizations, orgId);
   } else {
@@ -239,7 +240,7 @@ module.exports = async (req, res) => {
       }
     }
     if (errors.length) {
-      return sendJson(res, 400, { error: 'validation_failed', details: errors });
+      return jsonResponse(400, { error: 'validation_failed', details: errors });
     }
 
     if (mode === 'create') {
@@ -254,7 +255,7 @@ module.exports = async (req, res) => {
     } else {
       // update
       const idx = organizations.findIndex((o) => o.id === orgId);
-      if (idx === -1) return sendJson(res, 404, { error: 'organization_not_found' });
+      if (idx === -1) return jsonResponse(404, { error: 'organization_not_found' });
       const previousConnections = organizations[idx].connections || [];
       const finalized = finalizeOrgFields(org, orgId, organizations[idx]);
       organizations[idx] = finalized;
@@ -266,9 +267,18 @@ module.exports = async (req, res) => {
   try {
     const result = await updateGist(organizations);
     const savedOrg = resultOrgId === null ? null : result.organizations.find((o) => o.id === resultOrgId);
-    return sendJson(res, 200, { ok: true, org: savedOrg, version: result.version });
+    return jsonResponse(200, { ok: true, org: savedOrg, version: result.version });
   } catch (err) {
     console.error('publish: failed to update gist:', err);
-    return sendJson(res, 502, { error: 'gist_update_failed' });
+    return jsonResponse(502, { error: 'gist_update_failed' });
   }
-};
+}
+
+app.http('publish', {
+  methods: ['POST'],
+  route: 'publish',
+  authLevel: 'anonymous',
+  handler: publishHandler,
+});
+
+module.exports = { publishHandler };

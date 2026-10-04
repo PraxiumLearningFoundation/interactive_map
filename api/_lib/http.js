@@ -1,29 +1,34 @@
-// Small helpers shared by the /api handlers.
+// Small helpers shared by the /api functions.
+//
+// Azure Functions' v4 Node.js model has handlers *return* a response object
+// ({ status, jsonBody, headers }) instead of mutating a res parameter like
+// Vercel's model did — these helpers build that object consistently.
 
-// Vercel's Node.js runtime auto-parses JSON bodies into req.body, but guard against it being
-// a raw string (e.g. when a different content-type or invocation path is used).
-function readJsonBody(req) {
-  if (req.body === undefined || req.body === null) return {};
-  if (typeof req.body === 'object') return req.body;
-  try {
-    return JSON.parse(req.body);
-  } catch (err) {
-    return {};
-  }
+function jsonResponse(status, payload) {
+  return {
+    status,
+    jsonBody: payload,
+    headers: {
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  };
 }
 
-function sendJson(res, status, payload) {
-  res
-    .status(status)
-    .setHeader('Content-Type', 'application/json; charset=utf-8')
-    .setHeader('Cache-Control', 'no-store')
-    .setHeader('X-Content-Type-Options', 'nosniff')
-    .end(JSON.stringify(payload));
+function methodNotAllowed(allowed) {
+  return {
+    status: 405,
+    jsonBody: { error: 'method_not_allowed' },
+    headers: {
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+      Allow: allowed.join(', '),
+    },
+  };
 }
 
-function methodNotAllowed(res, allowed) {
-  res.setHeader('Allow', allowed.join(', '));
-  sendJson(res, 405, { error: 'method_not_allowed' });
+function unauthorized() {
+  return jsonResponse(401, { error: 'unauthorized' });
 }
 
-module.exports = { readJsonBody, sendJson, methodNotAllowed };
+module.exports = { jsonResponse, methodNotAllowed, unauthorized };
