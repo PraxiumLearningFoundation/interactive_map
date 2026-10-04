@@ -21,16 +21,24 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Audit dependencies
-        # Production-only: this project ships zero runtime npm dependencies (the
-        # API functions use Node built-ins, the frontend loads Leaflet from a CDN).
-        # electron/electron-builder are devDependencies for the desktop packaging
-        # tool only — never shipped to the deployed map/admin/API — so their
-        # transitive vulnerabilities shouldn't block every unrelated PR.
+        # Production-only: the root project ships zero runtime npm dependencies
+        # (the public map loads Leaflet from a CDN). electron/electron-builder
+        # are devDependencies for the desktop packaging tool only — never
+        # shipped to the deployed map/admin/API — so their transitive
+        # vulnerabilities shouldn't block every unrelated PR.
         run: npm audit --omit=dev --audit-level=high
+
+      - name: Install api/ dependencies
+        # The Azure Functions API has its own package.json (@azure/functions is
+        # its one real runtime dependency), separate from the root project.
+        run: cd api && npm ci --ignore-scripts
+
+      - name: Audit api/ dependencies
+        run: cd api && npm audit --omit=dev --audit-level=high
 
       - name: Validate JSON files
         run: |
-          for f in $(find . -name "*.json" -not -path "./node_modules/*" -not -path "./.git/*"); do
+          for f in $(find . -name "*.json" -not -path "./node_modules/*" -not -path "./api/node_modules/*" -not -path "./.git/*"); do
             echo "Checking $f"
             node -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))"
           done
@@ -50,18 +58,18 @@ jobs:
 
       - name: Check api/ function syntax
         run: |
-          for f in api/*.js api/_lib/*.js; do
+          for f in api/_lib/*.js api/src/functions/*.js; do
             echo "Checking $f"
             node --check "$f"
           done
 
       - name: Check admin/ front-end syntax
-        run: |
-          node --check admin/admin.js
-          node --check admin/admin-auth.js
+        run: node --check admin/admin.js
 
       - name: Run api/ unit tests (mocked Gist backend)
-        run: node test/api.test.js
+        run: |
+          cp categories.json api/categories.json
+          node test/api.test.js
 
       - name: Run public map data tests
         run: |
