@@ -67,7 +67,9 @@ jobs:
         run: node --check admin/admin.js
 
       - name: Run api/ unit tests (mocked Gist backend)
-        run: node test/api.test.js
+        run: |
+          cp categories.json api/categories.json
+          node test/api.test.js
 
       - name: Run public map data tests
         run: |
