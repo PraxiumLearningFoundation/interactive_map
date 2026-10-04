@@ -1,17 +1,19 @@
 name: Azure Static Web Apps CI/CD
 
+# main -> Production environment; staging -> "staging" branch environment.
+# No pull_request trigger: new environments copy Production's settings (incl. the live GITHUB_PAT).
 on:
   push:
     branches:
-      - azure-migration
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
-    branches:
-      - azure-migration
+      - main
+      - staging
+
+concurrency:
+  group: azure-swa-${{ github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
   build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     steps:
@@ -26,29 +28,10 @@ jobs:
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FIELD_0CD14C010 }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "/" # App source code path
-          api_location: "api" # Api source code path - optional
-          output_location: "" # Built app content directory - optional
-          skip_app_build: true # No build step needed — plain static HTML/CSS/JS, no bundler.
-          # Without this, Oryx auto-detects Node.js (via the root package.json, which is
-          # actually just the Electron desktop packaging manifest, unrelated to the deployed
-          # site) and fails looking for a "build" npm script that doesn't exist. This only
-          # skips the *frontend* build — the api/ Functions app still gets its normal Oryx
-          # build/npm install so @azure/functions is actually present at runtime.
-          ###### End of Repository/Build Configurations ######
-
-  close_pull_request_job:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    name: Close Pull Request Job
-    steps:
-      - name: Close Pull Request
-        id: closepullrequest
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FIELD_0CD14C010 }}
-          action: "close"
+          production_branch: "main"
+          app_location: "/"
+          api_location: "api"
+          output_location: ""
+          skip_app_build: true # static site; api/ is still built by Oryx
