@@ -1403,6 +1403,65 @@ body.dark .leaflet-tile-pane {
     top: 66px;
   }
 
+  /* Organization card: wider, larger text and tap targets, scrolls if long */
+  .leaflet-popup-content {
+    width: min(360px, calc(100vw - 32px)) !important;
+  }
+
+  .popup-body {
+    max-height: 62vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 18px 18px 20px;
+  }
+
+  .popup-kicker { font-size: 0.72rem; }
+  .popup-title { font-size: 1.35rem; }
+  .popup-location { font-size: 0.85rem; }
+  .popup-description { font-size: 0.92rem; }
+  .popup-relationship { font-size: 0.85rem; }
+  .popup-relationship strong { font-size: 0.72rem; }
+  .popup-connections { font-size: 0.82rem; }
+  .popup-email-address { font-size: 0.8rem; }
+
+  .popup-contact a {
+    min-height: 44px;
+    padding: 9px 14px;
+    font-size: 0.85rem;
+  }
+
+  .leaflet-popup-close-button {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 26px !important;
+    line-height: 38px !important;
+  }
+
+  /* Explore drawer: compact header so the organization list gets the room */
+  .network-hero {
+    padding: 16px 64px 14px 16px;
+  }
+
+  .network-hero h1 {
+    font-size: 1.3rem;
+  }
+
+  .hero-copy {
+    display: none;
+  }
+
+  .impact-stats {
+    margin-top: 10px;
+  }
+
+  .impact-stat strong {
+    font-size: 1rem;
+  }
+
+  .org-item {
+    font-size: 0.95rem;
+  }
+
   body.map-expanded-active #map-shell {
     position: fixed;
     inset: 0;
@@ -1415,7 +1474,7 @@ body.dark .leaflet-tile-pane {
 
 @media (max-width: 430px) {
   .network-hero {
-    padding: 18px 17px 16px;
+    padding: 16px 64px 14px 16px;
   }
 
   .brand-lockup {
@@ -1428,7 +1487,7 @@ body.dark .leaflet-tile-pane {
 
   .network-hero h1 {
     margin-top: 3px;
-    font-size: 1.45rem;
+    font-size: 1.3rem;
   }
 
   .hero-copy {
@@ -1485,10 +1544,6 @@ body.dark .leaflet-tile-pane {
 
   #open-map-link {
     display: none !important;
-  }
-
-  .leaflet-popup-content {
-    width: min(270px, 74vw) !important;
   }
 }
 
