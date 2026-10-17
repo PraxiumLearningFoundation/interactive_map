@@ -1099,6 +1099,11 @@
       url.hash = '';
       refs.openMapLink.href = url.href;
       refs.openMapLink.hidden = false;
+      if (!(document.fullscreenEnabled && refs.shell.requestFullscreen)) {
+        refs.expandToggle.setAttribute('aria-label', 'Open full-screen map in a new tab');
+        refs.expandToggle.title = 'Open full-screen map in a new tab';
+        refs.expandToggle.querySelector('span').textContent = '↗';
+      }
     }
 
     if (!initializeLeaflet()) {
