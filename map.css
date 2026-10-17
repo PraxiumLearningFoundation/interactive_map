@@ -612,6 +612,10 @@ select:focus-visible,
   letter-spacing: 0.02em;
 }
 
+.network-footer > span {
+  text-wrap: balance;
+}
+
 .network-footer i {
   padding: 0 3px;
   color: var(--text-accent);
