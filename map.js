@@ -948,8 +948,13 @@
         await refs.shell.requestFullscreen();
         return;
       } catch (error) {
-        // Cross-origin iframes need allow="fullscreen". Fall back to filling the iframe.
+        // Cross-origin iframes need allow="fullscreen". Fall back below.
       }
+    }
+    // iPhone Safari has no element fullscreen; inside an embed, filling the iframe changes nothing.
+    if (isEmbedded()) {
+      window.open(refs.openMapLink.href, '_blank', 'noopener');
+      return;
     }
     setFallbackExpanded(true);
   }
