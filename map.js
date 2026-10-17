@@ -663,9 +663,12 @@
 
     if (settings.moveMap) {
       const method = reducedMotion.matches ? 'setView' : 'flyTo';
+      // Open after the move so auto-pan fits the card on screen.
+      map.once('moveend', () => marker.openPopup());
       map[method](organization.coordinates, Math.max(map.getZoom(), FOCUS_ZOOM), { duration: 0.65 });
+    } else {
+      marker.openPopup();
     }
-    marker.openPopup();
     closeSidebarOnMobile();
     notifyParent('selection', { organizationId: id, organizationName: organization.name });
     return true;
