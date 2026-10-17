@@ -339,13 +339,21 @@
       email.href = `mailto:${organization.contact.email}`;
       email.textContent = 'Email';
       email.setAttribute('aria-label', `Email ${organization.name}`);
-      // mailto: links only do something if the browser/OS has a mail client
-      // registered to handle them — true by default on phones, often not on
-      // desktops where people only use webmail. The title gives desktop users
-      // without one a way to see (and copy) the address via hover/right-click
-      // even when clicking the link silently does nothing.
       email.title = organization.contact.email;
+      // Desktop browsers without a registered mail app do nothing on mailto:, so also copy the address.
+      email.addEventListener('click', () => {
+        if (!navigator.clipboard) return;
+        navigator.clipboard.writeText(organization.contact.email).then(() => {
+          email.textContent = 'Address copied ✓';
+          setTimeout(() => { email.textContent = 'Email'; }, 2500);
+        }, () => {});
+      });
       contact.appendChild(email);
+
+      const address = document.createElement('span');
+      address.className = 'popup-email-address';
+      address.textContent = organization.contact.email;
+      contact.appendChild(address);
     }
 
     if (organization.contact.phone) {
