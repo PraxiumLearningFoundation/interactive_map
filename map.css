@@ -1258,7 +1258,7 @@ body.dark .leaflet-tile-pane {
     bottom: 0;
     left: 0;
     z-index: 1450;
-    width: 100%;
+    width: min(340px, 85vw);
     height: 100%;
     border-right: 0;
     box-shadow: 12px 0 34px rgba(62, 61, 61, 0.28);
@@ -1437,29 +1437,62 @@ body.dark .leaflet-tile-pane {
     line-height: 38px !important;
   }
 
-  /* Explore drawer: compact header so the organization list gets the room */
-  .network-hero {
-    padding: 16px 64px 14px 16px;
-  }
-
-  .network-hero h1 {
-    font-size: 1.3rem;
-  }
-
-  .hero-copy {
+  /* Explore drawer: drop the hero and tighten spacing so the list gets the room */
+  #sidebar .network-hero {
     display: none;
   }
 
-  .impact-stats {
-    margin-top: 10px;
+  #sidebar .network-explorer {
+    padding: max(12px, env(safe-area-inset-top)) 12px 0 !important;
   }
 
-  .impact-stat strong {
-    font-size: 1rem;
+  #sidebar .section-heading {
+    margin-bottom: 8px !important;
   }
 
-  .org-item {
-    font-size: 0.95rem;
+  #sidebar .section-kicker {
+    display: none;
+  }
+
+  #sidebar .field-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  #sidebar .filter-stack {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+    padding-bottom: 8px !important;
+  }
+
+  #sidebar .search-field,
+  #sidebar #category-filter {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+  }
+
+  #sidebar .organization-list {
+    padding-top: 8px !important;
+    gap: 6px;
+  }
+
+  #sidebar .org-item {
+    min-height: 52px;
+  }
+
+  #sidebar .network-footer {
+    padding: 10px 12px max(10px, env(safe-area-inset-bottom)) !important;
+    font-size: 0.9rem;
+  }
+
+  #sidebar .network-footer a {
+    min-height: 36px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
   }
 
   body.map-expanded-active #map-shell {
