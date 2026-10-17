@@ -943,18 +943,21 @@
       return;
     }
 
-    if (refs.shell.requestFullscreen) {
+    const canFullscreen = Boolean(document.fullscreenEnabled && refs.shell.requestFullscreen);
+    // iPhone Safari has no element fullscreen, and filling the iframe changes nothing, so open
+    // the full page. This must run before any await or Safari blocks it as a popup.
+    if (!canFullscreen && isEmbedded()) {
+      window.open(refs.openMapLink.href, '_blank', 'noopener');
+      return;
+    }
+
+    if (canFullscreen) {
       try {
         await refs.shell.requestFullscreen();
         return;
       } catch (error) {
-        // Cross-origin iframes need allow="fullscreen". Fall back below.
+        // Fall back to filling the frame below.
       }
-    }
-    // iPhone Safari has no element fullscreen; inside an embed, filling the iframe changes nothing.
-    if (isEmbedded()) {
-      window.open(refs.openMapLink.href, '_blank', 'noopener');
-      return;
     }
     setFallbackExpanded(true);
   }
