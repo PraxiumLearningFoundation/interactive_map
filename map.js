@@ -877,7 +877,10 @@
     refs.sidebarToggle.setAttribute('aria-expanded', 'true');
     refs.sidebarToggle.setAttribute('aria-label', 'Close network explorer');
     refs.sidebarToggle.querySelector('span').textContent = '×';
-    window.setTimeout(() => refs.search.focus(), reducedMotion.matches ? 0 : 240);
+    // Focusing on touch devices pops the keyboard and scrolls the embedded page.
+    if (!window.matchMedia('(pointer: coarse)').matches) {
+      window.setTimeout(() => refs.search.focus(), reducedMotion.matches ? 0 : 240);
+    }
   }
 
   function closeSidebar() {
@@ -887,6 +890,11 @@
     refs.sidebarToggle.setAttribute('aria-expanded', 'false');
     refs.sidebarToggle.setAttribute('aria-label', 'Open network explorer');
     refs.sidebarToggle.querySelector('span').textContent = '☰';
+    if (document.activeElement && refs.sidebar.contains(document.activeElement)) document.activeElement.blur();
+    // Undo any scroll the on-screen keyboard caused so the map buttons are back in view.
+    window.scrollTo(0, 0);
+    refs.shell.scrollTop = 0;
+    if (map) map.invalidateSize();
   }
 
   function closeSidebarOnMobile() {
