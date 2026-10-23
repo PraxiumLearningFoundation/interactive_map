@@ -68,3 +68,7 @@ api/categories.json
 .tmp-chrome/
 .cc-history/
 Plan.md
+
+# Playwright
+test-results/
+playwright-report/
