@@ -1354,7 +1354,6 @@ body.dark .leaflet-tile-pane {
     display: none;
   }
 
-  #reset-view,
   #open-map-link {
     display: none !important;
   }
