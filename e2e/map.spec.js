@@ -231,6 +231,21 @@ test.describe('public network map — phone layout', () => {
     await expect(page.locator('#sidebar')).not.toHaveClass(/sidebar-open/);
   });
 
+  test('"show all" view fits a cross-continent network on screen', async ({ page }) => {
+    // Vancouver to Nairobi is too wide for a phone at zoom 2.
+    await openMap(page);
+    const offScreen = await page.evaluate(() => {
+      const bounds = document.getElementById('map').getBoundingClientRect();
+      return [...document.querySelectorAll('.leaflet-marker-icon')]
+        .filter((el) => {
+          const r = el.getBoundingClientRect();
+          return r.left < bounds.left || r.right > bounds.right || r.top < bounds.top || r.bottom > bounds.bottom;
+        })
+        .map((el) => el.title);
+    });
+    expect(offScreen).toEqual([]);
+  });
+
   test('legend opens and closes', async ({ page }) => {
     await openMap(page);
     await page.locator('#legend-toggle').click();

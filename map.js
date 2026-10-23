@@ -9,6 +9,11 @@
   // same zoom level used when focusing on any single organization below.
   const INITIAL_VIEW = { center: [49.2827, -123.1207], zoom: 5 };
   const FOCUS_ZOOM = 5;
+  // Phones can't fit a cross-continent network at zoom 2, so let them zoom out
+  // one more level and land fits on quarter zooms instead of whole ones.
+  const MOBILE_BREAKPOINT = 720;
+  const DESKTOP_MIN_ZOOM = 2;
+  const MOBILE_MIN_ZOOM = 1;
 
   // Hotlinking tile.openstreetmap.org directly from a production site embedded
   // elsewhere (e.g. via iframe on the org's public website) violates OSM's tile
@@ -207,7 +212,8 @@
 
     map = window.L.map('map', {
       zoomControl: false,
-      minZoom: 2,
+      minZoom: getMinZoom(),
+      zoomSnap: 0.25,
       worldCopyJump: true,
       preferCanvas: true,
     }).setView(INITIAL_VIEW.center, INITIAL_VIEW.zoom);
@@ -602,6 +608,14 @@
     }
   }
 
+  function isNarrowScreen() {
+    return window.innerWidth <= MOBILE_BREAKPOINT;
+  }
+
+  function getMinZoom() {
+    return isNarrowScreen() ? MOBILE_MIN_ZOOM : DESKTOP_MIN_ZOOM;
+  }
+
   function fitOrganizations(organizations, animate) {
     if (!map) return;
     const rows = (organizations || []).filter(Boolean);
@@ -616,11 +630,12 @@
     }
 
     const bounds = window.L.latLngBounds(rows.map((organization) => organization.coordinates));
+    const sidePadding = isNarrowScreen() ? 20 : 46;
     map.fitBounds(bounds, {
       animate: Boolean(animate && !reducedMotion.matches),
       duration: 0.75,
-      paddingTopLeft: [46, 76],
-      paddingBottomRight: [46, 54],
+      paddingTopLeft: [sidePadding, 76],
+      paddingBottomRight: [sidePadding, 54],
       maxZoom: FOCUS_ZOOM,
     });
   }
@@ -1020,7 +1035,10 @@
 
     window.addEventListener('resize', () => {
       window.requestAnimationFrame(() => {
-        if (map) map.invalidateSize();
+        if (map) {
+          map.invalidateSize();
+          map.setMinZoom(getMinZoom());
+        }
         if (window.innerWidth > 720) {
           closeSidebar();
           closeLegend();
