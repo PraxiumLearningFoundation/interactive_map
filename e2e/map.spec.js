@@ -7,6 +7,36 @@ async function openMap(page, options) {
   await mockMapData(page, options);
   await page.goto(MAP_PATH);
   await page.evaluate(() => window.praxiumNetwork.ready);
+  // `ready` fires before the map's delayed fit-to-all-markers, which moves every
+  // marker; wait until markers stop moving so clicks don't land where one used to be.
+  await waitForMarkersToSettle(page);
+}
+
+async function waitForMarkersToSettle(page) {
+  let previous = null;
+  await expect.poll(async () => {
+    const current = await page.evaluate(() => JSON.stringify(
+      [...document.querySelectorAll('.leaflet-marker-icon')].map((el) => {
+        const r = el.getBoundingClientRect();
+        return [r.left, r.top];
+      }),
+    ));
+    const settled = current === previous;
+    previous = current;
+    return settled;
+  }, { intervals: [150] }).toBe(true);
+}
+
+function offScreenMarkers(page) {
+  return page.evaluate(() => {
+    const bounds = document.getElementById('map').getBoundingClientRect();
+    return [...document.querySelectorAll('.leaflet-marker-icon')]
+      .filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.left < bounds.left || r.right > bounds.right || r.top < bounds.top || r.bottom > bounds.bottom;
+      })
+      .map((el) => el.title);
+  });
 }
 
 async function openSidebarIfMobile(page, isMobile) {
@@ -215,6 +245,26 @@ test.describe('public network map — phone layout', () => {
     const { width, height } = page.viewportSize();
     await page.mouse.click(width - 8, height / 2);
     await expect(page.locator('#sidebar')).not.toHaveClass(/sidebar-open/);
+  });
+
+  test('"show all" view fits a cross-continent network on screen', async ({ page }) => {
+    // Vancouver to Nairobi is too wide for a phone at zoom 2.
+    await openMap(page);
+    expect(await offScreenMarkers(page)).toEqual([]);
+  });
+
+  test('"View all" button zooms back out after selecting an organization', async ({ page }) => {
+    await openMap(page);
+    const viewAll = page.getByRole('button', { name: 'View all organizations' });
+    await expect(viewAll).toBeVisible();
+
+    await page.locator('.leaflet-marker-icon[title="Highland Health Network"]').click();
+    await expect(page.locator('.leaflet-popup')).toHaveCount(1);
+
+    await viewAll.click();
+    await expect(page.locator('.leaflet-popup')).toHaveCount(0);
+    await waitForMarkersToSettle(page);
+    expect(await offScreenMarkers(page)).toEqual([]);
   });
 
   test('legend opens and closes', async ({ page }) => {
