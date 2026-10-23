@@ -7,6 +7,20 @@ async function openMap(page, options) {
   await mockMapData(page, options);
   await page.goto(MAP_PATH);
   await page.evaluate(() => window.praxiumNetwork.ready);
+  // `ready` fires before the map's delayed fit-to-all-markers, which moves every
+  // marker; wait until markers stop moving so clicks don't land where one used to be.
+  let previous = null;
+  await expect.poll(async () => {
+    const current = await page.evaluate(() => JSON.stringify(
+      [...document.querySelectorAll('.leaflet-marker-icon')].map((el) => {
+        const r = el.getBoundingClientRect();
+        return [r.left, r.top];
+      }),
+    ));
+    const settled = current === previous;
+    previous = current;
+    return settled;
+  }, { intervals: [150] }).toBe(true);
 }
 
 async function openSidebarIfMobile(page, isMobile) {
