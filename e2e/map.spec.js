@@ -275,3 +275,73 @@ test.describe('public network map — phone layout', () => {
     await expect(page.locator('#legend')).not.toHaveClass(/legend-open/);
   });
 });
+
+test.describe('public map tags', () => {
+  test('tag filter lists tags with merged counts and narrows the map', async ({ page, isMobile }) => {
+    await openMap(page);
+    await openSidebarIfMobile(page, isMobile);
+
+    await expect(page.locator('#tag-filter-field')).toBeVisible();
+    await expect(page.locator('#tag-filter option')).toHaveText(['All tags', 'Youth (2)', 'Literacy (1)', 'Murals (1)']);
+
+    await page.locator('#tag-filter').selectOption('youth');
+    await expect(page.locator('#result-count')).toHaveText('2 of 3');
+    await expect(page.locator('.leaflet-marker-icon.custom-marker')).toHaveCount(2);
+    await expect(page.locator('#clear-filters')).toBeVisible();
+
+    await page.locator('#tag-filter').selectOption('murals');
+    await expect(page.locator('#result-count')).toHaveText('1 of 3');
+    await expect(page.locator('.org-item:visible .org-name')).toHaveText('Riverbank Arts Collective');
+
+    await page.locator('#clear-filters').click();
+    await expect(page.locator('#tag-filter')).toHaveValue('');
+    await expect(page.locator('#result-count')).toHaveText('3 of 3');
+  });
+
+  test('search matches tags', async ({ page, isMobile }) => {
+    await openMap(page);
+    await openSidebarIfMobile(page, isMobile);
+    await page.locator('#search-input').fill('litera');
+    await expect(page.locator('#result-count')).toHaveText('1 of 3');
+    await expect(page.locator('.org-item:visible .org-name')).toHaveText('Praxium Learning Foundation');
+  });
+
+  test('cards and popups show tags; a popup tag applies the filter', async ({ page, isMobile }) => {
+    await openMap(page);
+    await openSidebarIfMobile(page, isMobile);
+    const card = page.locator('.org-item[data-id="1"]');
+    await expect(card.locator('.org-tags')).toHaveText('#Youth #Literacy');
+    await card.click();
+
+    const popup = page.locator('.leaflet-popup-content');
+    await expect(popup.locator('.popup-tag')).toHaveText(['#Youth', '#Literacy']);
+    await popup.getByRole('button', { name: 'Show organizations tagged Literacy' }).click();
+    await expect(page.locator('#tag-filter')).toHaveValue('literacy');
+    await expect(page.locator('#result-count')).toHaveText('1 of 3');
+  });
+
+  test('tag filter stays hidden when no organization has tags', async ({ page }) => {
+    const untagged = ORGANIZATIONS.map(({ tags, ...rest }) => rest);
+    await openMap(page, { organizations: untagged });
+    await expect(page.locator('#tag-filter-field')).toBeHidden();
+  });
+
+  test('tags from the Gist render as text, not HTML', async ({ page, isMobile }) => {
+    const hostile = structuredClone(ORGANIZATIONS);
+    hostile[2].tags = ['<img src=x onerror="window.__pwned=1">'];
+    await openMap(page, { organizations: hostile });
+    await openSidebarIfMobile(page, isMobile);
+    await expect(page.locator('.org-item[data-id="3"] .org-tags')).toContainText('<img');
+    expect(await page.evaluate(() => window.__pwned)).toBeUndefined();
+  });
+});
+
+
+test('a tag literally named "All" still filters', async ({ page, isMobile }) => {
+  const rows = structuredClone(ORGANIZATIONS);
+  rows[2].tags = ['All'];
+  await openMap(page, { organizations: rows });
+  await openSidebarIfMobile(page, isMobile);
+  await page.locator('#tag-filter').selectOption({ label: 'All (1)' });
+  await expect(page.locator('#result-count')).toHaveText('1 of 3');
+});

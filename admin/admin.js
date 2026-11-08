@@ -2,6 +2,11 @@ let organizations = [];
 let categories = [];
 let currentVersion = null;
 let editingOrgId = null; // null = create mode
+let formTags = [];
+let activeTagFilter = null; // lower-cased tag selected in "Tags in use"
+
+// Shared with the public map (network-data.js) so both read tags identically.
+const { MAX_TAGS, MAX_TAG_LENGTH } = window.PraxiumData;
 
 let previewMap = null;
 let previewMarker = null;
@@ -15,6 +20,27 @@ const formTitle = document.getElementById('form-title');
 const formError = document.getElementById('form-error');
 const banner = document.getElementById('admin-banner');
 const lastUpdatedEl = document.getElementById('last-updated');
+const tagOverviewList = document.getElementById('tag-overview-list');
+const tagOverviewCount = document.getElementById('tag-overview-count');
+const tagOverviewEmpty = document.getElementById('tag-overview-empty');
+const tagChipsEl = document.getElementById('org-tag-chips');
+const tagInput = document.getElementById('org-tag-input');
+const tagSuggestions = document.getElementById('tag-suggestions');
+const orgListEmpty = document.getElementById('org-list-empty');
+
+function cleanTag(value) {
+  return String(value).trim().replace(/\s+/g, ' ');
+}
+
+// Normalized exactly as the public map shows them (handles legacy string tags and
+// over-limit hand edits, so re-saving an org cleans its tags instead of failing).
+function orgTags(org) {
+  return window.PraxiumData.normalizeTags(org && org.tags);
+}
+
+function collectTags() {
+  return window.PraxiumData.collectTags(organizations);
+}
 
 function showBanner(kind, message) {
   banner.textContent = message;
@@ -47,28 +73,129 @@ async function loadData() {
   categories = data.categories;
   currentVersion = data.version;
   lastUpdatedEl.textContent = `Last updated: ${new Date(data.updatedAt).toLocaleString()}`;
+  renderTagOverview();
   renderOrgList();
+}
+
+function renderTagOverview() {
+  const tags = collectTags();
+  if (activeTagFilter && !tags.some((t) => t.tag.toLocaleLowerCase() === activeTagFilter)) activeTagFilter = null;
+  tagOverviewList.innerHTML = '';
+  tagOverviewCount.textContent = tags.length ? `(${tags.length})` : '';
+  tagOverviewEmpty.hidden = tags.length > 0;
+  tagSuggestions.innerHTML = '';
+  tags.forEach(({ tag, count }) => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tag-filter-btn';
+    btn.dataset.tag = tag.toLocaleLowerCase();
+    btn.setAttribute('aria-pressed', String(activeTagFilter === btn.dataset.tag));
+    btn.textContent = tag;
+    const countEl = document.createElement('span');
+    countEl.className = 'tag-count';
+    countEl.textContent = String(count);
+    countEl.setAttribute('aria-label', `${count} organization${count === 1 ? '' : 's'}`);
+    btn.appendChild(countEl);
+    btn.addEventListener('click', () => {
+      activeTagFilter = activeTagFilter === btn.dataset.tag ? null : btn.dataset.tag;
+      renderTagOverview();
+      renderOrgList();
+    });
+    li.appendChild(btn);
+    tagOverviewList.appendChild(li);
+
+    const opt = document.createElement('option');
+    opt.value = tag;
+    tagSuggestions.appendChild(opt);
+  });
 }
 
 function renderOrgList() {
   const term = searchEl.value.trim().toLowerCase();
   listEl.innerHTML = '';
-  organizations
-    .filter((o) => !term || o.name.toLowerCase().includes(term) || (o.category || '').toLowerCase().includes(term))
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .forEach((org) => {
-      const li = document.createElement('li');
-      li.className = 'org-card';
-      li.innerHTML = `
-        <div class="org-card-main">
-          <strong>${escapeHtml(org.name)}</strong>
-          <span class="org-card-category">${escapeHtml(org.category || '')}</span>
-        </div>
-        <button type="button" class="edit-link">Edit</button>
-      `;
-      li.querySelector('.edit-link').addEventListener('click', () => openForm(org));
-      listEl.appendChild(li);
+  const rows = organizations
+    .filter((o) => {
+      const tags = orgTags(o).map((t) => t.toLocaleLowerCase());
+      if (activeTagFilter && !tags.includes(activeTagFilter)) return false;
+      return !term
+        || o.name.toLowerCase().includes(term)
+        || (o.category || '').toLowerCase().includes(term)
+        || tags.some((t) => t.includes(term));
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+  rows.forEach((org) => {
+    const li = document.createElement('li');
+    li.className = 'org-card';
+    li.innerHTML = `
+      <div class="org-card-main">
+        <strong>${escapeHtml(org.name)}</strong>
+        <span class="org-card-category">${escapeHtml(org.category || '')}</span>
+      </div>
+      <button type="button" class="edit-link">Edit</button>
+    `;
+    const tags = orgTags(org);
+    if (tags.length) {
+      const ul = document.createElement('ul');
+      ul.className = 'org-card-tags';
+      ul.setAttribute('aria-label', 'Tags');
+      tags.forEach((tag) => {
+        const item = document.createElement('li');
+        item.textContent = tag;
+        ul.appendChild(item);
+      });
+      li.querySelector('.org-card-main').appendChild(ul);
+    }
+    li.querySelector('.edit-link').addEventListener('click', () => openForm(org));
+    listEl.appendChild(li);
+  });
+  orgListEmpty.hidden = rows.length > 0 || organizations.length === 0;
+}
+
+function renderTagChips() {
+  tagChipsEl.innerHTML = '';
+  formTags.forEach((tag, index) => {
+    const li = document.createElement('li');
+    li.className = 'tag-chip';
+    const label = document.createElement('span');
+    label.textContent = tag;
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = '×';
+    remove.setAttribute('aria-label', `Remove tag ${tag}`);
+    remove.addEventListener('click', () => {
+      formTags.splice(index, 1);
+      renderTagChips();
+      tagInput.focus();
     });
+    li.append(label, remove);
+    tagChipsEl.appendChild(li);
+  });
+  tagInput.disabled = formTags.length >= MAX_TAGS;
+  tagInput.placeholder = formTags.length >= MAX_TAGS ? 'Tag limit reached' : 'Type a tag and press Enter';
+}
+
+// Adds each comma-separated tag in `raw`; returns false if anything was rejected.
+function addTags(raw) {
+  let ok = true;
+  // Reuse the existing spelling so "youth" joins an existing "Youth" tag.
+  const known = new Map(collectTags().map(({ tag }) => [tag.toLocaleLowerCase(), tag]));
+  String(raw).split(',').map(cleanTag).filter(Boolean).forEach((tag) => {
+    const key = tag.toLocaleLowerCase();
+    if (formTags.some((t) => t.toLocaleLowerCase() === key)) return;
+    if (tag.length > MAX_TAG_LENGTH || formTags.length >= MAX_TAGS) { ok = false; return; }
+    formTags.push(known.get(key) || tag);
+  });
+  renderTagChips();
+  return ok;
+}
+
+function commitTagInput() {
+  if (!tagInput.value.trim()) return true;
+  const ok = addTags(tagInput.value);
+  tagInput.value = '';
+  if (!ok) showFormError(`Tags are limited to ${MAX_TAGS} per organization and ${MAX_TAG_LENGTH} characters each.`);
+  return ok;
 }
 
 function escapeHtml(str) {
@@ -180,6 +307,9 @@ function openForm(org) {
     : 0;
   document.getElementById('geocode-status').textContent = '';
   document.getElementById('delete-btn').hidden = !org;
+  formTags = [...orgTags(org)];
+  tagInput.value = '';
+  renderTagChips();
 
   populateCategorySelect(org ? org.category : '');
   populateConnectionsSelect(org ? org.connections : [], org ? org.id : null);
@@ -198,6 +328,22 @@ function closeForm() {
 document.getElementById('add-org-btn').addEventListener('click', () => openForm(null));
 document.getElementById('cancel-btn').addEventListener('click', closeForm);
 searchEl.addEventListener('input', renderOrgList);
+
+tagInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    if (tagInput.value.trim() && commitTagInput()) hideFormError();
+  } else if (e.key === 'Backspace' && !tagInput.value && formTags.length) {
+    formTags.pop();
+    renderTagChips();
+  }
+});
+// Picking a datalist suggestion fires "input" with the full value; add it straight away.
+tagInput.addEventListener('input', (e) => {
+  if (e.inputType === 'insertReplacementText' || e.inputType === undefined) {
+    if (collectTags().some((t) => t.tag === tagInput.value)) commitTagInput();
+  }
+});
 
 document.getElementById('org-category').addEventListener('change', (e) => {
   document.getElementById('custom-category-wrap').hidden = e.target.value !== 'custom';
@@ -288,6 +434,8 @@ document.getElementById('logout-btn').addEventListener('click', () => {
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   hideFormError();
+  // Text still in the tag box is added on publish; a rejected tag blocks the publish.
+  if (!commitTagInput()) return;
 
   const categorySelect = document.getElementById('org-category');
   const categoryCustom = document.getElementById('org-category-custom').value.trim();
@@ -312,6 +460,7 @@ form.addEventListener('submit', async (e) => {
       phone: document.getElementById('org-phone').value.trim(),
     },
     connections,
+    tags: [...formTags],
   };
 
   const mode = editingOrgId ? 'update' : 'create';

@@ -1,8 +1,10 @@
 const {
+  collectTags,
   computeMetrics,
   getConnectionPairs,
   normalizeCategory,
   normalizeDataset,
+  normalizeTags,
   safeHttpUrl,
 } = require('../network-data');
 
@@ -125,6 +127,33 @@ test('allows only http and https organization links', () => {
   assert(safeHttpUrl('https://example.org') === 'https://example.org/', 'https should be accepted');
   assert(safeHttpUrl('javascript:alert(1)') === '', 'script URLs should be rejected');
   assert(safeHttpUrl('not a url') === '', 'malformed URLs should be rejected');
+});
+
+test('normalizes tags: trims, collapses spaces, dedupes case-insensitively', () => {
+  const tags = normalizeTags(['  Youth  ', 'youth', 'Early   Literacy', '', 7, null, {}]);
+  assert(JSON.stringify(tags) === JSON.stringify(['Youth', 'Early Literacy', '7']), `got ${JSON.stringify(tags)}`);
+});
+
+test('accepts comma-separated tag strings and enforces limits', () => {
+  assert(JSON.stringify(normalizeTags('a, b ,,a')) === JSON.stringify(['a', 'b']), 'string tags split on commas');
+  const many = Array.from({ length: 20 }, (_, i) => `tag${i}`);
+  assert(normalizeTags(many).length === 12, 'at most 12 tags');
+  assert(normalizeTags(['x'.repeat(60)])[0].length === 40, 'tags are capped at 40 chars');
+  assert(normalizeTags(undefined).length === 0, 'missing tags become an empty array');
+});
+
+test('normalizeDataset emits tags on every organization', () => {
+  const { organizations } = normalizeDataset([
+    { id: 1, name: 'A', coordinates: [1, 1], tags: ['Youth', 'youth'] },
+    { id: 2, name: 'B', coordinates: [2, 2] },
+  ], categories);
+  assert(JSON.stringify(organizations[0].tags) === '["Youth"]', 'tags deduped');
+  assert(Array.isArray(organizations[1].tags) && organizations[1].tags.length === 0, 'legacy row has []');
+});
+
+test('collectTags counts tags across organizations, most-used first', () => {
+  const result = collectTags([{ tags: ['Youth', 'Arts'] }, { tags: ['youth'] }, {}]);
+  assert(JSON.stringify(result) === JSON.stringify([{ tag: 'Youth', count: 2 }, { tag: 'Arts', count: 1 }]), JSON.stringify(result));
 });
 
 console.log('\nNETWORK DATA TESTS PASSED');

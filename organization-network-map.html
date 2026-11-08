@@ -11,6 +11,11 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="description" content="Explore Praxium Learning Foundation's growing global network of allies and partners.">
   <meta name="praxium-data-url" content="https://gist.githubusercontent.com/PraxiumLearning03/a139fdb216bcc3e91b67754c283f3805/raw/organization-network-map.json">
+  <!-- Used instead when served from the Azure staging environment (its admin publishes here). -->
+  <meta
+    name="praxium-staging-data-url"
+    content="https://gist.githubusercontent.com/selectdimensions/d04fdefbddf5bd8abd293f48024e41d5/raw/organization-network-map.json"
+  >
   <meta property="og:title" content="Praxium Global Network">
   <meta property="og:description" content="Explore the organizations and communities connected through Praxium Learning Foundation.">
   <meta property="og:type" content="website">
@@ -123,7 +128,7 @@
             <input
               type="search"
               id="search-input"
-              placeholder="Name, place, or area of work"
+              placeholder="Name, place, or tag"
               autocomplete="off"
               spellcheck="false"
             >
@@ -134,6 +139,13 @@
           <select id="category-filter">
             <option value="all">All focus areas</option>
           </select>
+
+          <div id="tag-filter-field" class="tag-filter-field" hidden>
+            <label class="field-label" for="tag-filter">Tag</label>
+            <select id="tag-filter">
+              <option value="">All tags</option>
+            </select>
+          </div>
 
           <button id="clear-filters" class="text-button" type="button" hidden>Clear filters</button>
         </div>
