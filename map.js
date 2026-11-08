@@ -122,8 +122,15 @@
     }
   }
 
+  // Azure SWA staging hosts look like <app>-staging.<region>.azurestaticapps.net.
+  function isStagingHost() {
+    return /-staging\.[a-z0-9.]*azurestaticapps\.net$/i.test(window.location.hostname);
+  }
+
   function readDataUrl() {
-    const meta = document.querySelector('meta[name="praxium-data-url"]');
+    const name = isStagingHost() ? 'praxium-staging-data-url' : 'praxium-data-url';
+    const meta = document.querySelector(`meta[name="${name}"]`)
+      || document.querySelector('meta[name="praxium-data-url"]');
     return meta ? meta.content.trim() : '';
   }
 
