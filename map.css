@@ -1599,8 +1599,6 @@ body.dark .leaflet-tile-pane {
   }
 
   #sidebar .filter-stack {
-    grid-template-columns: 1fr !important;
-    gap: 6px !important;
     padding-bottom: 8px !important;
   }
 

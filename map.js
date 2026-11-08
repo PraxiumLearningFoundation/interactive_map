@@ -848,6 +848,7 @@
 
     renderStats();
     renderFiltersAndLegend();
+    buildSheetOptions(); // an open filter sheet picks up the new categories/tags
     renderOrganizations();
     applyFilters({ fit: false });
 
@@ -1035,30 +1036,44 @@
     return button;
   }
 
-  function renderSheet() {
+  // Builds the option buttons (on open and after a data reload). Taps only update
+  // pressed states, so focus stays on the tapped button (iOS doesn't refocus on click).
+  function buildSheetOptions() {
     const draft = state.sheetDraft;
     if (!draft) return;
-    const focusedKey = document.activeElement && document.activeElement.dataset
-      ? document.activeElement.dataset.sheetKey : null;
+    if (!state.orderedCategories.includes(draft.category)) draft.category = 'all';
+    if (!state.tagList.some(({ tag }) => tag.toLocaleLowerCase() === draft.tag)) draft.tag = '';
 
     refs.sheetCategoryOptions.replaceChildren(...state.orderedCategories.map((category) => {
-      const button = sheetOption(category, draft.category === category, () => {
+      const button = sheetOption(category, false, () => {
         draft.category = draft.category === category ? 'all' : category;
         renderSheet();
       });
-      button.dataset.sheetKey = `c:${category}`;
+      button.dataset.kind = 'category';
+      button.dataset.value = category;
       return button;
     }));
     refs.sheetTagGroup.hidden = state.tagList.length === 0;
     refs.sheetTagOptions.replaceChildren(...state.tagList.map(({ tag }) => {
       const value = tag.toLocaleLowerCase();
-      const button = sheetOption(`#${tag}`, draft.tag === value, () => {
+      const button = sheetOption(`#${tag}`, false, () => {
         draft.tag = draft.tag === value ? '' : value;
         renderSheet();
       });
-      button.dataset.sheetKey = `t:${value}`;
+      button.dataset.kind = 'tag';
+      button.dataset.value = value;
       return button;
     }));
+    renderSheet();
+  }
+
+  function renderSheet() {
+    const draft = state.sheetDraft;
+    if (!draft) return;
+    refs.sheet.querySelectorAll('.sheet-option').forEach((button) => {
+      const selected = button.dataset.kind === 'category' ? draft.category : draft.tag;
+      button.setAttribute('aria-pressed', button.dataset.value === selected ? 'true' : 'false');
+    });
 
     const term = currentSearchTerm();
     const count = state.organizations
@@ -1067,17 +1082,11 @@
     refs.sheetApply.textContent = unfiltered
       ? `Show all ${count}`
       : `Show ${count} organization${count === 1 ? '' : 's'}`;
-    refs.sheetApply.disabled = count === 0;
-
-    if (focusedKey) {
-      const again = refs.sheet.querySelector(`[data-sheet-key="${CSS.escape(focusedKey)}"]`);
-      if (again) again.focus();
-    }
   }
 
   function openFilterSheet() {
     state.sheetDraft = { category: refs.category.value, tag: refs.tag.value };
-    renderSheet();
+    buildSheetOptions();
     refs.sheetLayer.hidden = false;
     refs.filtersButton.setAttribute('aria-expanded', 'true');
     const first = refs.sheet.querySelector('.sheet-option[aria-pressed="true"]')
@@ -1126,10 +1135,16 @@
   }
 
   // Collapse the drawer's brand header once the list scrolls; expand at the top.
+  // Only collapse when the list overflows by more than the header frees up
+  // (~200px); otherwise collapsing removes the overflow and it would flicker.
   function updateHeroCollapse() {
-    const top = refs.list.scrollTop;
-    if (top > 24) refs.sidebar.classList.add('hero-collapsed');
-    else if (top < 4) refs.sidebar.classList.remove('hero-collapsed');
+    const list = refs.list;
+    const collapsed = refs.sidebar.classList.contains('hero-collapsed');
+    if (!collapsed && list.scrollTop > 24 && list.scrollHeight - list.clientHeight > 240) {
+      refs.sidebar.classList.add('hero-collapsed');
+    } else if (collapsed && list.scrollTop < 4) {
+      refs.sidebar.classList.remove('hero-collapsed');
+    }
   }
 
   function closeSidebar() {
@@ -1224,7 +1239,8 @@
       if (!phoneQuery.matches) closeFilterSheet({ restoreFocus: false });
     };
     syncPlaceholder();
-    phoneQuery.addEventListener('change', syncPlaceholder);
+    if (phoneQuery.addEventListener) phoneQuery.addEventListener('change', syncPlaceholder);
+    else if (phoneQuery.addListener) phoneQuery.addListener(syncPlaceholder);
 
     refs.filtersButton.addEventListener('click', openFilterSheet);
     refs.sheetClose.addEventListener('click', () => closeFilterSheet());
@@ -1284,7 +1300,8 @@
 
     document.addEventListener('keydown', (event) => {
       if (event.key !== 'Escape') return;
-      if (refs.legend.classList.contains('legend-open')) closeLegend();
+      if (!refs.sheetLayer.hidden) closeFilterSheet();
+      else if (refs.legend.classList.contains('legend-open')) closeLegend();
       else if (refs.sidebar.classList.contains('sidebar-open')) closeSidebar();
       else if (refs.shell.classList.contains('map-expanded')) setFallbackExpanded(false);
       else if (state.selectedId !== null) clearSelection(false);

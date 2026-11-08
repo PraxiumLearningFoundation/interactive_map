@@ -434,7 +434,7 @@ test.describe('phone filter sheet', () => {
     await expect(page.locator('#filter-sheet-apply')).toHaveText('Show 2 organizations');
     await page.getByRole('dialog').getByRole('button', { name: 'Health', exact: true }).click();
     await expect(page.locator('#filter-sheet-apply')).toHaveText('Show 0 organizations');
-    await expect(page.locator('#filter-sheet-apply')).toBeDisabled();
+    await expect(page.locator('#filter-sheet-apply')).toBeEnabled();
   });
 
   test('brand header collapses when the list scrolls and expands at the top', async ({ page }) => {
@@ -449,6 +449,40 @@ test.describe('phone filter sheet', () => {
     await expect(page.locator('#sidebar .brand-lockup')).toHaveCSS('opacity', '0');
     await page.locator('#organization-list').evaluate((el) => { el.scrollTop = 0; });
     await expect(page.locator('#sidebar')).not.toHaveClass(/hero-collapsed/);
+  });
+
+  test('merged tag counts and a tag literally named "All" work in the sheet', async ({ page }) => {
+    const rows = structuredClone(ORGANIZATIONS);
+    rows[2].tags = ['All'];
+    await openMap(page, { organizations: rows });
+    await page.locator('#sidebar-toggle').click();
+    await page.locator('#filters-button').click();
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.locator('#sheet-tag-options .sheet-option')).toHaveText(['#Youth', '#All', '#Literacy', '#Murals']);
+    await sheet.getByRole('button', { name: '#All' }).click();
+    await expect(page.locator('#filter-sheet-apply')).toHaveText('Show 1 organization');
+    await page.locator('#filter-sheet-apply').click();
+    await expect(page.locator('#mobile-result-count')).toHaveText('Showing 1 of 3');
+    await expect(page.locator('.active-filter-chip')).toHaveText(['#All×']);
+  });
+
+  test('tapping an option keeps focus on it', async ({ page }) => {
+    await openDrawer(page);
+    await page.locator('#filters-button').click();
+    const youth = page.getByRole('dialog').getByRole('button', { name: '#Youth' });
+    await youth.focus();
+    await page.keyboard.press('Enter');
+    await expect(youth).toBeFocused();
+    await expect(youth).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('a popup tag updates the phone chips', async ({ page }) => {
+    await openDrawer(page);
+    await page.locator('.org-item[data-id="1"]').click();
+    await page.locator('.leaflet-popup-content').getByRole('button', { name: 'Show organizations tagged Literacy' }).click();
+    await page.locator('#sidebar-toggle').click();
+    await expect(page.locator('.active-filter-chip')).toHaveText(['#Literacy×']);
+    await expect(page.locator('#filters-badge')).toHaveText('1');
   });
 
   test('closing the drawer closes an open sheet', async ({ page }) => {
