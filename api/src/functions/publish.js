@@ -15,6 +15,26 @@ const FIELD_LIMITS = Object.freeze({
   email: 254,
   phone: 50,
 });
+const MAX_TAGS = 12;
+const MAX_TAG_LENGTH = 40;
+
+function cleanTag(value) {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+// Trimmed, whitespace-collapsed, case-insensitively de-duplicated tags.
+function normalizeTags(tags) {
+  const seen = new Set();
+  const result = [];
+  tags.forEach((tag) => {
+    const cleaned = cleanTag(tag);
+    const key = cleaned.toLocaleLowerCase();
+    if (!cleaned || seen.has(key)) return;
+    seen.add(key);
+    result.push(cleaned);
+  });
+  return result;
+}
 
 function isValidUrl(value) {
   try {
@@ -109,6 +129,18 @@ function validateOrgPayload(org, categories) {
     errors.push(`contact.phone must be ${FIELD_LIMITS.phone} characters or fewer`);
   }
 
+  if (org.tags !== undefined) {
+    if (!Array.isArray(org.tags) || !org.tags.every((tag) => typeof tag === 'string')) {
+      errors.push('tags must be an array of strings');
+    } else {
+      const tags = normalizeTags(org.tags);
+      if (tags.length > MAX_TAGS) errors.push(`no more than ${MAX_TAGS} tags are allowed`);
+      if (tags.some((tag) => tag.length > MAX_TAG_LENGTH)) {
+        errors.push(`each tag must be ${MAX_TAG_LENGTH} characters or fewer`);
+      }
+    }
+  }
+
   if (org.connections !== undefined) {
     if (!Array.isArray(org.connections) || !org.connections.every((id) => Number.isInteger(id))) {
       errors.push('connections must be an array of integer organization IDs');
@@ -146,6 +178,11 @@ function finalizeOrgFields(org, id, existing = {}) {
     const relationship = typeof org.relationship === 'string' ? org.relationship.trim() : '';
     if (relationship) finalized.relationship = relationship;
     else delete finalized.relationship;
+  }
+  if (Object.prototype.hasOwnProperty.call(org, 'tags')) {
+    const tags = normalizeTags(org.tags || []);
+    if (tags.length) finalized.tags = tags;
+    else delete finalized.tags;
   }
   delete finalized.allowCustomCategory;
 

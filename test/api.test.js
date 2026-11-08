@@ -272,6 +272,49 @@ async function run() {
     assert(!orgOne.connections.includes(3), 'expected reciprocal connection to be removed');
   }
 
+  console.log('--- tags: normalized on save, preserved when omitted, cleared when empty ---');
+  {
+    const base = {
+      name: 'Org Three', location: 'Calgary, AB', coordinates: [51.05, -114.07],
+      category: 'Health', description: 'new org updated', contact: { website: 'https://three.example' }, connections: [],
+    };
+    let res = await publishHandler(mockRequest({
+      method: 'POST',
+      body: { mode: 'update', orgId: newOrgId, expectedVersion: currentVersion, org: { ...base, tags: ['  Youth ', 'youth', 'Early   Literacy', ''] } },
+    }));
+    assert(res.status === 200, 'expected 200 for tagged update');
+    assert(JSON.stringify(res.jsonBody.org.tags) === '["Youth","Early Literacy"]', 'tags normalized: ' + JSON.stringify(res.jsonBody.org.tags));
+    currentVersion = res.jsonBody.version;
+
+    res = await publishHandler(mockRequest({
+      method: 'POST',
+      body: { mode: 'update', orgId: newOrgId, expectedVersion: currentVersion, org: base },
+    }));
+    assert(JSON.stringify(res.jsonBody.org.tags) === '["Youth","Early Literacy"]', 'payload without tags keeps tags');
+    currentVersion = res.jsonBody.version;
+
+    res = await publishHandler(mockRequest({
+      method: 'POST',
+      body: { mode: 'update', orgId: newOrgId, expectedVersion: currentVersion, org: { ...base, tags: [] } },
+    }));
+    assert(!('tags' in res.jsonBody.org), 'empty tags array removes the field');
+    currentVersion = res.jsonBody.version;
+
+    for (const [tags, expected] of [
+      ['youth', 'array of strings'],
+      [[1], 'array of strings'],
+      [Array.from({ length: 13 }, (_, i) => `t${i}`), 'no more than 12'],
+      [['x'.repeat(41)], '40 characters'],
+    ]) {
+      res = await publishHandler(mockRequest({
+        method: 'POST',
+        body: { mode: 'update', orgId: newOrgId, expectedVersion: currentVersion, org: { ...base, tags } },
+      }));
+      assert(res.status === 400, 'expected 400 for invalid tags ' + JSON.stringify(tags).slice(0, 40));
+      assert(res.jsonBody.details.some((d) => d.includes(expected)), 'expected detail: ' + expected);
+    }
+  }
+
   console.log('--- delete cascades connection removal ---');
   {
     const res = await publishHandler(mockRequest({

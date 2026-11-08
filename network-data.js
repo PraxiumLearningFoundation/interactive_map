@@ -9,6 +9,8 @@
   'use strict';
 
   const DEFAULT_CATEGORY = 'Other';
+  const MAX_TAGS = 12;
+  const MAX_TAG_LENGTH = 40;
 
   function asText(value) {
     if (value === undefined || value === null) return '';
@@ -73,6 +75,43 @@
       return null;
     }
     return [latitude, longitude];
+  }
+
+  function cleanTag(value) {
+    return asText(value).replace(/\s+/g, ' ');
+  }
+
+  // Accepts an array (or a comma-separated string from a hand-edited Gist) and
+  // returns trimmed, case-insensitively de-duplicated tags within the limits.
+  function normalizeTags(value) {
+    let raw = [];
+    if (Array.isArray(value)) raw = value;
+    else if (typeof value === 'string') raw = value.split(',');
+    const seen = new Set();
+    const tags = [];
+    raw.forEach((entry) => {
+      if (typeof entry !== 'string' && typeof entry !== 'number') return;
+      const tag = cleanTag(entry).slice(0, MAX_TAG_LENGTH).trim();
+      const key = tag.toLocaleLowerCase();
+      if (!tag || seen.has(key) || tags.length >= MAX_TAGS) return;
+      seen.add(key);
+      tags.push(tag);
+    });
+    return tags;
+  }
+
+  // Every tag in use with its organization count, most-used first.
+  function collectTags(organizations) {
+    const counts = new Map();
+    (Array.isArray(organizations) ? organizations : []).forEach((organization) => {
+      normalizeTags(organization && organization.tags).forEach((tag) => {
+        const key = tag.toLocaleLowerCase();
+        const entry = counts.get(key) || { tag, count: 0 };
+        entry.count += 1;
+        counts.set(key, entry);
+      });
+    });
+    return [...counts.values()].sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
   }
 
   function nextAvailableId(usedIds) {
@@ -166,6 +205,7 @@
         ),
         description: asText(rawOrganization.description),
         relationship: asText(rawOrganization.relationship),
+        tags: normalizeTags(rawOrganization.tags),
         contact,
         connections,
       });
@@ -233,13 +273,17 @@
 
   return {
     DEFAULT_CATEGORY,
+    MAX_TAGS,
+    MAX_TAG_LENGTH,
     asText,
+    collectTags,
     computeMetrics,
     getConnectionPairs,
     normalizeCategory,
     normalizeCoordinates,
     normalizeDataset,
     normalizeId,
+    normalizeTags,
     safeHttpUrl,
   };
 }));

@@ -156,6 +156,7 @@ test.describe('admin portal', () => {
         allowCustomCategory: false,
         description: 'Adult learning programmes.',
         relationship: 'Co-hosts our dialogue circles.',
+        tags: [],
         contact: { website: 'https://thames.example.org', email: 'hello@thames.example.org', phone: '' },
         connections: [3, 1], // option order: sorted by name
       },
@@ -335,5 +336,118 @@ test.describe('admin portal', () => {
     await page.goto('/admin/');
     await expect(page.locator('#org-list strong')).toHaveText('<img src=x onerror="window.__xss=1">Evil');
     expect(await page.evaluate(() => window.__xss)).toBeUndefined();
+  });
+});
+
+test.describe('admin portal tags', () => {
+  test('lists every tag in use with counts and filters the list', async ({ page }) => {
+    await openAdmin(page);
+    const overview = page.locator('#tag-overview-list .tag-filter-btn');
+    await expect(overview).toHaveCount(3);
+    await expect(overview.first()).toContainText('Youth');
+    await expect(overview.first().locator('.tag-count')).toHaveText('2');
+    await expect(page.locator('#tag-overview-count')).toHaveText('(3)');
+
+    await page.locator('.tag-filter-btn[data-tag="murals"]').click();
+    await expect(page.locator('.tag-filter-btn[data-tag="murals"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#org-list .org-card strong')).toHaveText(['Riverbank Arts Collective']);
+
+    await page.locator('.tag-filter-btn[data-tag="murals"]').click();
+    await expect(page.locator('#org-list .org-card')).toHaveCount(3);
+  });
+
+  test('cards show tags and search matches them', async ({ page }) => {
+    await openAdmin(page);
+    const praxium = page.locator('.org-card', { hasText: 'Praxium Learning Foundation' });
+    await expect(praxium.locator('.org-card-tags li')).toHaveText(['Youth', 'Literacy']);
+    await page.locator('#org-search').fill('literacy');
+    await expect(page.locator('#org-list .org-card strong')).toHaveText(['Praxium Learning Foundation']);
+  });
+
+  test('adds and removes tags, reusing existing spelling, and publishes them', async ({ page }) => {
+    const backend = await openAdmin(page);
+    await page.locator('.org-card', { hasText: 'Highland Health Network' }).getByRole('button', { name: 'Edit' }).click();
+
+    const input = page.locator('#org-tag-input');
+    await input.fill('youth');
+    await input.press('Enter');
+    await input.fill('Rural Health, clinics ,clinics');
+    await input.press('Enter');
+    await expect(page.locator('#org-tag-chips .tag-chip span')).toHaveText(['Youth', 'Rural Health', 'clinics']);
+
+    await page.getByRole('button', { name: 'Remove tag Rural Health' }).click();
+    await input.press('Backspace');
+    await expect(page.locator('#org-tag-chips .tag-chip span')).toHaveText(['Youth']);
+
+    await input.fill('Outreach'); // left in the box: committed on publish
+    await page.locator('#save-btn').click();
+    await expect(page.locator('#admin-banner')).toHaveText('Published successfully.');
+    expect(backend.publishRequests.at(-1).org.tags).toEqual(['Youth', 'Outreach']);
+    await expect(page.locator('.tag-filter-btn[data-tag="youth"] .tag-count')).toHaveText('3');
+  });
+
+  test('enforces the 12-tag and 40-character limits', async ({ page }) => {
+    await openAdmin(page);
+    await page.locator('#add-org-btn').click();
+    const input = page.locator('#org-tag-input');
+    await input.fill('x'.repeat(41));
+    await input.press('Enter');
+    await expect(page.locator('#form-error')).toContainText('40 characters');
+    await expect(page.locator('#org-tag-chips .tag-chip')).toHaveCount(0);
+    await input.fill(Array.from({ length: 13 }, (_, i) => `t${i}`).join(','));
+    await input.press('Enter');
+    await expect(page.locator('#org-tag-chips .tag-chip')).toHaveCount(12);
+    await expect(page.locator('#form-error')).toContainText('limited to 12');
+    await expect(input).toBeDisabled();
+  });
+
+  test('existing tags are preserved when editing other fields', async ({ page }) => {
+    const backend = await openAdmin(page);
+    await page.locator('.org-card', { hasText: 'Praxium Learning Foundation' }).getByRole('button', { name: 'Edit' }).click();
+    await expect(page.locator('#org-tag-chips .tag-chip span')).toHaveText(['Youth', 'Literacy']);
+    await page.locator('#org-description').fill('Updated description.');
+    await page.locator('#save-btn').click();
+    await expect(page.locator('#admin-banner')).toHaveText('Published successfully.');
+    expect(backend.publishRequests.at(-1).org.tags).toEqual(['Youth', 'Literacy']);
+  });
+});
+
+
+test.describe('admin portal tags — legacy data', () => {
+  test('string and over-limit Gist tags are normalized, not wiped, on save', async ({ page }) => {
+    const legacy = structuredClone(ORGANIZATIONS);
+    legacy[2].tags = '  Rural   Health , outreach';
+    legacy[0].tags = Array.from({ length: 14 }, (_, i) => `t${i}`);
+    const backend = await openAdmin(page, {
+      gist: (route) => route.fulfill({ json: { organizations: legacy, categories: CATEGORIES, version: 'v1', updatedAt: '2026-10-01T12:00:00Z' } }),
+    });
+    await page.locator('.tag-filter-btn[data-tag="rural health"]').click();
+    await expect(page.locator('#org-list .org-card strong')).toHaveText(['Highland Health Network']);
+    await page.locator('.org-card', { hasText: 'Highland' }).getByRole('button', { name: 'Edit' }).click();
+    await page.locator('#save-btn').click();
+    await expect(page.locator('#admin-banner')).toHaveText('Published successfully.');
+    expect(backend.publishRequests.at(-1).org.tags).toEqual(['Rural Health', 'outreach']);
+
+    await page.locator('.tag-filter-btn[data-tag="rural health"]').click(); // clear the filter
+
+    await page.locator('.org-card', { hasText: 'Praxium Learning' }).getByRole('button', { name: 'Edit' }).click();
+    await expect(page.locator('#org-tag-chips .tag-chip')).toHaveCount(12);
+  });
+
+  test('a rejected tag left in the box blocks publishing', async ({ page }) => {
+    const backend = await openAdmin(page);
+    await page.locator('.org-card', { hasText: 'Highland' }).getByRole('button', { name: 'Edit' }).click();
+    await page.locator('#org-tag-input').fill(Array.from({ length: 13 }, (_, i) => `t${i}`).join(','));
+    await page.locator('#save-btn').click();
+    await expect(page.locator('#form-error')).toContainText('limited to 12');
+    expect(backend.publishRequests).toHaveLength(0);
+  });
+
+  test('removing a chip while text is in the box works', async ({ page }) => {
+    await openAdmin(page);
+    await page.locator('.org-card', { hasText: 'Praxium Learning' }).getByRole('button', { name: 'Edit' }).click();
+    await page.locator('#org-tag-input').fill('Arts');
+    await page.getByRole('button', { name: 'Remove tag Youth' }).click();
+    await expect(page.locator('#org-tag-chips .tag-chip span')).toHaveText(['Literacy']);
   });
 });

@@ -68,6 +68,8 @@
     search: document.getElementById('search-input'),
     clearSearch: document.getElementById('clear-search'),
     category: document.getElementById('category-filter'),
+    tag: document.getElementById('tag-filter'),
+    tagField: document.getElementById('tag-filter-field'),
     clearFilters: document.getElementById('clear-filters'),
     list: document.getElementById('organization-list'),
     emptyResults: document.getElementById('empty-results'),
@@ -312,6 +314,24 @@
       body.appendChild(relationship);
     }
 
+    if (organization.tags && organization.tags.length) {
+      const tagList = document.createElement('ul');
+      tagList.className = 'popup-tags';
+      tagList.setAttribute('aria-label', 'Tags');
+      organization.tags.forEach((tag) => {
+        const item = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'popup-tag';
+        button.textContent = `#${tag}`;
+        button.setAttribute('aria-label', `Show organizations tagged ${tag}`);
+        button.addEventListener('click', () => filterByTag(tag));
+        item.appendChild(button);
+        tagList.appendChild(item);
+      });
+      body.appendChild(tagList);
+    }
+
     const connectedNames = [...getConnectedIds(organization.id)]
       .map((id) => state.organizations.find((candidate) => candidate.id === id))
       .filter(Boolean)
@@ -396,6 +416,11 @@
     copy.className = 'org-card-copy';
     appendTextElement(copy, 'span', 'org-name', organization.name);
     if (organization.location) appendTextElement(copy, 'span', 'org-location', organization.location);
+    if (organization.tags && organization.tags.length) {
+      const shown = organization.tags.slice(0, 3).map((tag) => `#${tag}`);
+      const extra = organization.tags.length - shown.length;
+      appendTextElement(copy, 'span', 'org-tags', shown.join(' ') + (extra > 0 ? ` +${extra}` : ''));
+    }
     button.appendChild(copy);
 
     appendTextElement(button, 'span', 'org-category', organization.category);
@@ -470,6 +495,30 @@
     refs.category.value = [...refs.category.options].some((option) => option.value === selected)
       ? selected
       : 'all';
+
+    const selectedTag = refs.tag.value;
+    // "All tags" uses an empty value so a tag literally named "All" can't collide with it.
+    refs.tag.querySelectorAll('option:not([value=""])').forEach((option) => option.remove());
+    const tags = dataTools.collectTags(state.organizations);
+    tags.forEach(({ tag, count }) => {
+      const option = document.createElement('option');
+      option.value = tag.toLocaleLowerCase();
+      option.textContent = `${tag} (${count})`;
+      refs.tag.appendChild(option);
+    });
+    refs.tagField.hidden = tags.length === 0;
+    refs.tag.value = [...refs.tag.options].some((option) => option.value === selectedTag)
+      ? selectedTag
+      : '';
+  }
+
+  // Popup tag buttons show every organization with that tag: other filters reset, popup closes.
+  function filterByTag(tag) {
+    refs.search.value = '';
+    refs.category.value = 'all';
+    refs.tag.value = tag.toLocaleLowerCase();
+    if (map) map.closePopup();
+    applyFilters({ fit: true });
   }
 
   function clearRenderedMap() {
@@ -664,6 +713,7 @@
     if (!state.visibleIds.has(id)) {
       refs.search.value = '';
       refs.category.value = 'all';
+      refs.tag.value = '';
       applyFilters({ fit: false });
     }
 
@@ -697,6 +747,7 @@
       organization.category,
       organization.description,
       organization.relationship,
+      ...(organization.tags || []),
     ].join(' ').toLocaleLowerCase();
   }
 
@@ -713,12 +764,15 @@
     const settings = { fit: false, ...(options || {}) };
     const searchTerm = refs.search.value.trim().toLocaleLowerCase();
     const selectedCategory = refs.category.value;
+    const selectedTag = refs.tag.value;
     state.visibleIds.clear();
 
     state.organizations.forEach((organization) => {
       const searchMatches = !searchTerm || normalizedSearchText(organization).includes(searchTerm);
       const categoryMatches = selectedCategory === 'all' || organization.category === selectedCategory;
-      const visible = searchMatches && categoryMatches;
+      const tagMatches = !selectedTag
+        || (organization.tags || []).some((tag) => tag.toLocaleLowerCase() === selectedTag);
+      const visible = searchMatches && categoryMatches && tagMatches;
       const card = state.cards.get(organization.id);
       const marker = state.markers.get(organization.id);
 
@@ -739,7 +793,7 @@
     refs.resultCount.textContent = `${visibleCount} of ${state.organizations.length}`;
     refs.emptyResults.hidden = visibleCount !== 0 || state.organizations.length === 0;
     refs.clearSearch.hidden = refs.search.value.length === 0;
-    refs.clearFilters.hidden = !searchTerm && selectedCategory === 'all';
+    refs.clearFilters.hidden = !searchTerm && selectedCategory === 'all' && !selectedTag;
     updateLegendSelection();
     drawConnections();
 
@@ -757,6 +811,7 @@
     if (settings.resetFilters) {
       refs.search.value = '';
       refs.category.value = 'all';
+      refs.tag.value = '';
     }
 
     renderStats();
@@ -992,6 +1047,7 @@
       }
     });
     refs.category.addEventListener('change', () => applyFilters({ fit: true }));
+    refs.tag.addEventListener('change', () => applyFilters({ fit: true }));
     refs.clearSearch.addEventListener('click', () => {
       refs.search.value = '';
       refs.search.focus();
@@ -1000,6 +1056,7 @@
     refs.clearFilters.addEventListener('click', () => {
       refs.search.value = '';
       refs.category.value = 'all';
+      refs.tag.value = '';
       applyFilters({ fit: true });
     });
 

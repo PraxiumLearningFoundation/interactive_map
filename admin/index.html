@@ -32,10 +32,16 @@
   <main id="admin-main">
     <section id="org-list-panel">
       <div id="org-list-controls">
-        <input type="text" id="org-search" placeholder="Search organizations...">
+        <input type="text" id="org-search" placeholder="Search organizations or tags..." aria-label="Search organizations or tags">
         <button id="add-org-btn" type="button">+ Add Organization</button>
       </div>
+      <section id="tag-overview" aria-labelledby="tag-overview-title">
+        <h2 id="tag-overview-title">Tags in use <span id="tag-overview-count"></span></h2>
+        <p id="tag-overview-empty" class="field-hint">No tags yet. Add tags when editing an organization so visitors can search for them on the map.</p>
+        <ul id="tag-overview-list" aria-label="Tags in use — select one to filter the list"></ul>
+      </section>
       <ul id="org-list"></ul>
+      <p id="org-list-empty" class="field-hint" hidden>No organizations match.</p>
     </section>
 
     <section id="org-form-panel" hidden>
@@ -90,6 +96,23 @@
           <input type="text" id="org-category-custom" placeholder="Enter a one-off category name">
         </div>
 
+        <label for="org-tag-input">Tags</label>
+        <div id="tag-editor" class="tag-editor">
+          <ul id="org-tag-chips" class="tag-chips" aria-label="Selected tags"></ul>
+          <input
+            type="text"
+            id="org-tag-input"
+            list="tag-suggestions"
+            autocomplete="off"
+            placeholder="Type a tag and press Enter"
+            aria-describedby="tag-hint"
+          >
+          <datalist id="tag-suggestions"></datalist>
+        </div>
+        <p id="tag-hint" class="field-hint">
+          Press Enter or comma to add. Up to 12 tags, 40 characters each. Visitors can search the map by tag.
+        </p>
+
         <label for="org-description">Description *</label>
         <textarea id="org-description" rows="4" maxlength="500" required></textarea>
         <p class="field-hint"><span id="description-count">0</span>/500</p>
@@ -127,6 +150,7 @@
     crossorigin="anonymous"
     referrerpolicy="no-referrer"
   ></script>
+  <script src="/network-data.js"></script>
   <script src="/admin/admin.js"></script>
 </body>
 </html>
