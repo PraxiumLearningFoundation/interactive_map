@@ -94,6 +94,7 @@ test.describe('public network map', () => {
   });
 
   test('category filter and "Clear filters"', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Phones use the filter sheet (see "phone filter sheet" tests).');
     await openMap(page);
     await openSidebarIfMobile(page, isMobile);
 
@@ -278,6 +279,7 @@ test.describe('public network map — phone layout', () => {
 
 test.describe('public map tags', () => {
   test('tag filter lists tags with merged counts and narrows the map', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Phones use the filter sheet (see "phone filter sheet" tests).');
     await openMap(page);
     await openSidebarIfMobile(page, isMobile);
 
@@ -338,6 +340,7 @@ test.describe('public map tags', () => {
 
 
 test('a tag literally named "All" still filters', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Phones use the filter sheet (see "phone filter sheet" tests).');
   const rows = structuredClone(ORGANIZATIONS);
   rows[2].tags = ['All'];
   await openMap(page, { organizations: rows });
@@ -345,3 +348,114 @@ test('a tag literally named "All" still filters', async ({ page, isMobile }) => 
   await page.locator('#tag-filter').selectOption({ label: 'All (1)' });
   await expect(page.locator('#result-count')).toHaveText('1 of 3');
 });
+
+test.describe('phone filter sheet', () => {
+  test.beforeEach(({ isMobile }) => test.skip(!isMobile, 'phone-only UI'));
+
+  async function openDrawer(page) {
+    await openMap(page);
+    await page.locator('#sidebar-toggle').click();
+    await expect(page.locator('#sidebar')).toHaveClass(/sidebar-open/);
+  }
+
+  test('drawer shows brand header, one-row stats, search + Filters; selects are hidden', async ({ page }) => {
+    await openDrawer(page);
+    await expect(page.locator('#sidebar .network-hero h1')).toBeVisible();
+    await expect(page.locator('#sidebar .brand-lockup')).toBeVisible();
+    await expect(page.locator('#filters-button')).toBeVisible();
+    await expect(page.locator('#category-filter')).toBeHidden();
+    await expect(page.locator('#tag-filter-field')).toBeHidden();
+    await expect(page.locator('#mobile-result-count')).toHaveText('Showing 3 of 3');
+    await expect(page.locator('#filters-badge')).toBeHidden();
+    const box = await page.locator('#filters-button').boundingBox();
+    expect(box.height).toBeGreaterThanOrEqual(44);
+  });
+
+  test('sheet drafts filters, previews the count, and applies on Show', async ({ page }) => {
+    await openDrawer(page);
+    await page.locator('#filters-button').click();
+    const sheet = page.getByRole('dialog', { name: 'Filters' });
+    await expect(sheet).toBeVisible();
+    await expect(page.locator('#filter-sheet-apply')).toHaveText('Show all 3');
+
+    await sheet.getByRole('button', { name: '#Youth' }).click();
+    await expect(sheet.getByRole('button', { name: '#Youth' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#filter-sheet-apply')).toHaveText('Show 2 organizations');
+    await sheet.getByRole('button', { name: 'Arts', exact: true }).click();
+    await expect(page.locator('#filter-sheet-apply')).toHaveText('Show 1 organization');
+    // Nothing applied until Show
+    await expect(page.locator('#mobile-result-count')).toHaveText('Showing 3 of 3');
+
+    await page.locator('#filter-sheet-apply').click();
+    await expect(sheet).toBeHidden();
+    await expect(page.locator('#filters-button')).toBeFocused();
+    await expect(page.locator('#mobile-result-count')).toHaveText('Showing 1 of 3');
+    await expect(page.locator('#filters-badge')).toHaveText('2');
+    await expect(page.locator('.active-filter-chip')).toHaveText(['Arts×', '#Youth×']);
+    await expect(page.locator('#category-filter')).toHaveValue('Arts');
+    await expect(page.locator('#tag-filter')).toHaveValue('youth');
+  });
+
+  test('chips remove a single filter', async ({ page }) => {
+    await openDrawer(page);
+    await page.locator('#filters-button').click();
+    await page.getByRole('dialog').getByRole('button', { name: '#Youth' }).click();
+    await page.locator('#filter-sheet-apply').click();
+    await expect(page.locator('#mobile-result-count')).toHaveText('Showing 2 of 3');
+    await page.getByRole('button', { name: 'Remove filter #Youth' }).click();
+    await expect(page.locator('#mobile-result-count')).toHaveText('Showing 3 of 3');
+    await expect(page.locator('.active-filter-chip')).toHaveCount(0);
+    await expect(page.locator('#filters-badge')).toBeHidden();
+  });
+
+  test('Escape, scrim and close discard the draft; Clear resets it', async ({ page }) => {
+    await openDrawer(page);
+    const sheet = page.getByRole('dialog', { name: 'Filters' });
+    await page.locator('#filters-button').click();
+    await sheet.getByRole('button', { name: 'Health', exact: true }).click();
+    await page.keyboard.press('Escape');
+    await expect(sheet).toBeHidden();
+    await expect(page.locator('#mobile-result-count')).toHaveText('Showing 3 of 3');
+
+    await page.locator('#filters-button').click();
+    await expect(sheet.getByRole('button', { name: 'Health', exact: true })).toHaveAttribute('aria-pressed', 'false');
+    await sheet.getByRole('button', { name: 'Health', exact: true }).click();
+    await page.locator('#filter-sheet-clear').click();
+    await expect(page.locator('#filter-sheet-apply')).toHaveText('Show all 3');
+    await page.getByRole('button', { name: 'Close filters' }).click();
+    await expect(sheet).toBeHidden();
+  });
+
+  test('search combines with sheet filters in the preview count', async ({ page }) => {
+    await openDrawer(page);
+    await page.locator('#search-input').fill('canada');
+    await page.locator('#filters-button').click();
+    await page.getByRole('dialog').getByRole('button', { name: '#Youth' }).click();
+    await expect(page.locator('#filter-sheet-apply')).toHaveText('Show 2 organizations');
+    await page.getByRole('dialog').getByRole('button', { name: 'Health', exact: true }).click();
+    await expect(page.locator('#filter-sheet-apply')).toHaveText('Show 0 organizations');
+    await expect(page.locator('#filter-sheet-apply')).toBeDisabled();
+  });
+
+  test('brand header collapses when the list scrolls and expands at the top', async ({ page }) => {
+    const many = Array.from({ length: 14 }, (_, i) => ({
+      ...ORGANIZATIONS[i % 3], id: i + 1, name: `Org ${i + 1}`, connections: [],
+      coordinates: [10 + i, 20 + i],
+    }));
+    await openMap(page, { organizations: many });
+    await page.locator('#sidebar-toggle').click();
+    await page.locator('#organization-list').evaluate((el) => { el.scrollTop = 200; });
+    await expect(page.locator('#sidebar')).toHaveClass(/hero-collapsed/);
+    await expect(page.locator('#sidebar .brand-lockup')).toHaveCSS('opacity', '0');
+    await page.locator('#organization-list').evaluate((el) => { el.scrollTop = 0; });
+    await expect(page.locator('#sidebar')).not.toHaveClass(/hero-collapsed/);
+  });
+
+  test('closing the drawer closes an open sheet', async ({ page }) => {
+    await openDrawer(page);
+    await page.locator('#filters-button').click();
+    await page.locator('#sidebar-toggle').click();
+    await expect(page.locator('#filter-sheet-layer')).toBeHidden();
+  });
+});
+
