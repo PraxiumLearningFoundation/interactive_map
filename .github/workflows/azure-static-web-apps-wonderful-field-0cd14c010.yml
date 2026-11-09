@@ -21,7 +21,7 @@ jobs:
       name: ${{ github.ref_name == 'main' && 'Production' || 'Staging' }}
       url: ${{ github.ref_name == 'main' && 'https://wonderful-field-0cd14c010.1.azurestaticapps.net/admin/' || 'https://wonderful-field-0cd14c010-staging.centralus.1.azurestaticapps.net/admin/' }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
         with:
           submodules: true
           lfs: false
