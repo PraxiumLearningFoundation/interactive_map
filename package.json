@@ -1,6 +1,6 @@
 {
   "name": "praxium-map-editor",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "desktopName": "praxium-map-editor.desktop",
   "description": "Desktop application for editing the Praxium Interactive Network Map data",
   "main": "electron/main.js",
