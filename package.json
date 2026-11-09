@@ -1,6 +1,6 @@
 {
   "name": "praxium-map-editor",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "desktopName": "praxium-map-editor.desktop",
   "description": "Desktop application for editing the Praxium Interactive Network Map data",
   "main": "electron/main.js",
@@ -15,7 +15,8 @@
     "dist:win": "electron-builder --win --publish never",
     "dist:mac": "electron-builder --mac --publish never",
     "dist:linux": "electron-builder --linux --publish never",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "demo-videos": "node scripts/demo-videos/record-demos.js"
   },
   "repository": {
     "type": "git",

@@ -75,3 +75,6 @@ Plan.md
 # Playwright
 test-results/
 playwright-report/
+
+# Demo video output (scripts/demo-videos)
+/demo-videos/
