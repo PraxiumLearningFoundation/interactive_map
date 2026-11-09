@@ -13,9 +13,10 @@ The repository has three related surfaces:
    - `map.js` — map interactions, filters, theme, status handling, and embed API
    - `network-data.js` — reusable validation, normalization, metrics, and connection de-duplication
    - `categories.json` / `categories.legacy.js` — canonical categories and the `file://` fallback
-2. **Board publishing admin** — currently implemented for Vercel Functions
-   - `admin/` — passphrase login and form-driven editor
-   - `api/` — authentication, Gist publishing, and geocoding functions
+2. **Board publishing admin** — Azure Static Web Apps + Azure Functions
+   - `admin/` — form-driven editor behind Microsoft Entra ID sign-in
+   - `api/` — Gist read/publish and geocoding functions
+   - `staticwebapp.config.json` — auth, route protection, and security headers
 3. **Offline/bulk editor**
    - `admin-editor/` — browser-based JSON editor
    - `electron/` — desktop wrapper and native file operations
@@ -117,12 +118,21 @@ Invalid individual records are skipped without taking down the entire map. Unkno
 
 The admin UI, serverless functions, local sample data, and repository files are not included in the Pages artifact.
 
-Production URLs:
+## Where everything lives
 
-```text
-https://praxiumlearningfoundation.github.io/interactive_map/
-https://praxiumlearningfoundation.github.io/interactive_map/organization-network-map.html
-```
+| What | URL | Deployed by |
+|---|---|---|
+| Public map (embed this) | https://praxiumlearningfoundation.github.io/interactive_map/ | `static.yml` on push to `main` |
+| Board admin (production) | https://wonderful-field-0cd14c010.1.azurestaticapps.net/admin/ | `azure-static-web-apps-…yml` on push to `main` |
+| Staging (admin + map) | https://wonderful-field-0cd14c010-staging.centralus.1.azurestaticapps.net/admin/ | same workflow on push to `staging` |
+
+- Production reads and writes the production Gist. Staging uses its own test
+  Gist, and the map switches to it automatically when served from the staging
+  host (`praxium-staging-data-url` in `organization-network-map.html`).
+- Each Azure deploy is recorded on GitHub's **Deployments** page as the
+  `Production` or `Staging` environment.
+- The map is also served by the Azure app at `/organization-network-map.html`,
+  but the GitHub Pages URL is the one embedded on the website — keep using it.
 
 Use pull requests rather than pushing feature work directly to `main`; CI validates JSON, checks JavaScript syntax, and runs the public-map and API tests before merge.
 
@@ -177,20 +187,18 @@ The original `exportData`, `importData`, and `addOrganization` entry points rema
 
 ### A. Web admin — recommended for routine edits
 
-The `/admin` interface lets a board member log in, create/edit/delete organizations, geocode addresses, select relationships by organization name, and publish to the Gist without seeing JSON or a GitHub token.
+The `/admin` interface lets a board member sign in with their Praxium Microsoft account, create/edit/delete organizations, manage tags, geocode addresses, select relationships by organization name, and publish to the Gist without seeing JSON or a GitHub token.
 
-Required environment variables:
+Azure Static Web Apps application settings (set per environment in the Azure portal):
 
 - `GITHUB_PAT` — Gist read/write token; never expose it to browser code
-- `GIST_ID` — production Gist ID
-- `ADMIN_PASSPHRASE` — shared board passphrase
-- `SESSION_SECRET` — random 32+ byte cookie-signing secret
+- `GIST_ID` — the Gist this environment publishes to (production or staging test Gist)
+- `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` — the Entra ID app registration used for sign-in
 
 Current implementation details:
 
-- Signed, secure, `HttpOnly`, `SameSite=Strict` session cookie
-- Passphrase attempt limiting
-- Server-side validation of required fields, URLs, categories, and coordinate ranges
+- Microsoft Entra ID sign-in restricted to the Praxium tenant; `/admin/*` and `/api/*` require an authenticated user, enforced by Azure before requests reach the functions (which re-check the client principal)
+- Server-side validation of required fields, URLs, categories, tags, and coordinate ranges
 - Server-side Nominatim geocoding throttle
 - Optimistic concurrency using the Gist version (`409` on stale edits)
 - Reciprocal relationship maintenance and deleted-ID cleanup
@@ -211,29 +219,20 @@ The editor supports paste/load, form editing, copy, and JSON download. Packaged 
 
 The data URL points to the stable latest Gist path. Saving a valid edit to the production Gist makes it available to the map on the next refresh without redeploying the public site.
 
-## Azure migration path for the admin
+## Hosting
 
-GitHub Pages remains a good fit for the public map: it is static, free, versioned, and does not expose the admin backend. Migrate only the authenticated admin/API unless there is a separate reason to move the public map.
+The Azure cutover is complete (November 2026): the board admin and API run on
+Azure Static Web Apps with Entra ID sign-in, and the earlier Vercel deployment
+has been retired. GitHub Pages remains the public map host, since the embed URL
+is already in use and a static map gains nothing from moving.
 
 As of September 5, 2026, Microsoft documents a $2,000 USD annual Azure grant
 for eligible nonprofits. It must be renewed, unused credit does not roll over,
-and use beyond the grant can become pay-as-you-go. Add a budget and alerts
-before deploying production resources.
-
-A practical Azure target is:
-
-1. **Azure Static Web Apps** for `admin/` and the serverless API, deployed from the same GitHub repository.
-2. Keep the existing Gist as the first migration milestone so the public map URL and data contract do not change.
-3. Store `GITHUB_PAT`, `GIST_ID`, `ADMIN_PASSPHRASE`, and `SESSION_SECRET` in Azure application settings (or Key Vault when the nonprofit environment is ready).
-4. Port the Vercel-style request/response adapters in `api/` to Azure Functions handlers while preserving the tested validation/publishing functions.
-5. Replace the shared passphrase with Microsoft Entra ID and restrict access to the Praxium tenant or an explicit administrator role.
-6. Validate login, Gist read, geocoding, create/update/delete, and the deliberate two-tab conflict test in a staging environment.
-7. Cut the admin URL over only after the staging checklist passes; the public GitHub Pages iframe can stay unchanged.
+and use beyond the grant can become pay-as-you-go. Keep the Azure budget and
+alerts in place.
 
 A later phase could move structured data from a Gist to Azure Storage or
 Cosmos DB when Praxium needs richer audit, reporting, or approval workflows.
-That is an operational upgrade, not a prerequisite for presenting the network
-professionally.
 
 See `docs/PROFESSIONALIZATION_ROADMAP.md` for the full content, security,
 acceptance-testing, cost-control, and cutover plan.

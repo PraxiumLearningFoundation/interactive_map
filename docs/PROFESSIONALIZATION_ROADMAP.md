@@ -17,7 +17,7 @@ relationships, and stories must remain verifiable.
 | --- | --- | --- |
 | GitHub Pages | Public, embeddable map | Keep it. Static hosting is an appropriate low-cost boundary for public content. |
 | GitHub Gist | Public organization dataset | Keep during the first Azure migration so the public data contract does not change. |
-| Vercel deployment | Board admin and Node serverless handlers | Migrate the authenticated admin/API to Azure after staging tests pass. |
+| Azure Static Web Apps | Board admin and Azure Functions API (Entra ID sign-in) | Done: cut over from Vercel in November 2026; Vercel retired. |
 | Electron editor | Offline and bulk-edit fallback | Retain as a recovery path, not the primary board workflow. |
 
 ## Improvements implemented on this branch
@@ -134,7 +134,7 @@ Official references:
   private contact information.
 - Confirm the GitHub Pages public map still reads the unchanged Gist contract.
 
-### Phase D — production cutover
+### Phase D — production cutover (completed November 2026)
 
 - Configure production settings and the production Gist only after staging
   passes.
