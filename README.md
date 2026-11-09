@@ -123,6 +123,7 @@ The admin UI, serverless functions, local sample data, and repository files are 
 | What | URL | Deployed by |
 |---|---|---|
 | Public map (embed this) | https://praxiumlearningfoundation.github.io/interactive_map/ | `static.yml` on push to `main` |
+| Praxium website page (embeds the map) | https://www.praxiumfoundation.com/partner-map | Squarespace iframe → the public map URL |
 | Board admin (production) | https://wonderful-field-0cd14c010.1.azurestaticapps.net/admin/ | `azure-static-web-apps-…yml` on push to `main` |
 | Staging (admin + map) | https://wonderful-field-0cd14c010-staging.centralus.1.azurestaticapps.net/admin/ | same workflow on push to `staging` |
 
@@ -166,6 +167,27 @@ The map emits optional parent-window messages with `source: "praxium-network-map
 - `resize` — the map shell's measured height changed
 
 A host page may listen for those events if it wants custom analytics or iframe resizing. Because `postMessage` cannot safely guess the final production parent origin, receiving pages should always validate `event.origin` and `event.data.source` before acting.
+
+## Demo videos
+
+`scripts/demo-videos/record-demos.js` records captioned demo videos with
+Playwright and turns them into MP4s with ffmpeg (which must be installed):
+
+```bash
+npm run demo-videos                                   # all three
+node scripts/demo-videos/record-demos.js map-vertical # just one
+```
+
+| Video | Size | Use |
+|---|---|---|
+| `demo-videos/praxium-map-vertical.mp4` | 1080×1920 | Reels / TikTok / Shorts |
+| `demo-videos/praxium-map-landscape.mp4` | 1920×1080 | YouTube, LinkedIn, website |
+| `demo-videos/praxium-admin.mp4` | 1920×1080 | Board training (internal) |
+
+The map videos use the live production data, so re-record after the map
+changes. The admin video uses a local copy of the admin with the real data and
+a fake API, so the demo edits are never published. It shows real contact
+details, so keep it internal. Captions and scenes are defined in the script.
 
 ## Public JavaScript API
 
