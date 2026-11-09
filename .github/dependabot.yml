@@ -10,6 +10,17 @@ updates:
       - dependencies
       - security
 
+  # Production Azure Functions dependencies
+  - package-ecosystem: npm
+    directory: /api
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - security
+
   - package-ecosystem: github-actions
     directory: /
     schedule:

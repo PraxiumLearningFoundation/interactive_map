@@ -28,13 +28,17 @@ wheels/
 
 # Environment variables
 .env
-.env.local
+.env.*
+api/.env
+.azure/
 
 # Credentials / secrets — never commit these
 .gitToken.txt
 .recovery-codes.txt
 *.pem
 *.key
+*.p12
+*.pfx
 
 # Azure Functions local development settings (holds secrets like GITHUB_PAT,
 # AZURE_CLIENT_SECRET when running `func start` locally against api/)
@@ -56,8 +60,7 @@ node_modules/
 npm-debug.log
 yarn-error.log
 
-# Electron Builder output
-dist/
+# Electron Builder output (dist/ is listed above)
 out/
 
 # Staged copy of the repo-root categories.json for the Azure Functions deploy (see workflow + pretest)

@@ -1,8 +1,7 @@
 // Small helpers shared by the /api functions.
 //
 // Azure Functions' v4 Node.js model has handlers *return* a response object
-// ({ status, jsonBody, headers }) instead of mutating a res parameter like
-// Vercel's model did — these helpers build that object consistently.
+// ({ status, jsonBody, headers }); these helpers build that object consistently.
 
 function jsonResponse(status, payload) {
   return {

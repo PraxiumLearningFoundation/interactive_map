@@ -31,12 +31,12 @@ color, while `#85624B` is used for small interactive text and button fills.
 
 - A branded impact narrative instead of a utility-only map
 - Live counts for organizations, focus areas, locations/countries, and mapped relationships
-- Search and category filtering with visible result counts and empty states
+- Search, focus-area, and tag filtering with visible result counts and empty states
 - Clickable, keyboard-accessible organization cards and map markers
 - De-duplicated relationship lines, including support for one-way legacy connection data
 - Secure popup rendering: untrusted Gist content is inserted as text, not executable HTML
 - Website-matching light mode by default, an optional token-consistent dark
-  mode, full-network reset, mobile explorer drawer, legend, and expand control
+  mode, full-network reset, compact phone drawer with a filter sheet, legend, and expand control
 - Website-aligned Epilogue/Poppins typography, warm paper/ink surfaces, accessible
   clay interactions, and the same asymmetric field shape used by the main site
 - Last-known-good local cache plus clear stale/error messages when the Gist is unavailable

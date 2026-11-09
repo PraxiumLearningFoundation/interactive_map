@@ -58,8 +58,20 @@ function hideFormError() {
   formError.hidden = true;
 }
 
+// When the Entra session has expired, Azure answers /api/* with a 302 to the
+// login page rather than a 401. A followed redirect ends cross-origin at
+// Microsoft and surfaces as a network error, so stop at the redirect and
+// report it as 401: every caller already sends the user to sign in on 401.
+async function apiFetch(url, options = {}) {
+  const resp = await fetch(url, { credentials: 'same-origin', ...options, redirect: 'manual' });
+  if (resp.type === 'opaqueredirect') {
+    return new Response('{}', { status: 401, headers: { 'Content-Type': 'application/json' } });
+  }
+  return resp;
+}
+
 async function loadData() {
-  const resp = await fetch('/api/gist', { credentials: 'same-origin' });
+  const resp = await apiFetch('/api/gist', { credentials: 'same-origin' });
   if (resp.status === 401) {
     window.location.href = '/.auth/login/aad';
     return;
@@ -369,7 +381,7 @@ document.getElementById('geocode-btn').addEventListener('click', async () => {
   }
   statusEl.textContent = 'Looking up coordinates…';
   try {
-    const resp = await fetch('/api/geocode', {
+    const resp = await apiFetch('/api/geocode', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ address }),
@@ -401,7 +413,7 @@ document.getElementById('delete-btn').addEventListener('click', async () => {
   if (!confirm('Delete this organization? This cannot be undone.')) return;
 
   try {
-    const resp = await fetch('/api/publish', {
+    const resp = await apiFetch('/api/publish', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode: 'delete', orgId: editingOrgId, expectedVersion: currentVersion }),
@@ -472,7 +484,7 @@ form.addEventListener('submit', async (e) => {
   saveBtn.textContent = 'Publishing…';
 
   try {
-    const resp = await fetch('/api/publish', {
+    const resp = await apiFetch('/api/publish', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

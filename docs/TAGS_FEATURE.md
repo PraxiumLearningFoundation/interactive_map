@@ -1,4 +1,6 @@
-# Engineering Prompt — Organization Tags
+# Organization Tags (shipped in v1.1.0)
+
+The original engineering spec, kept for reference.
 
 ## Goal
 Board members can attach free-form **tags** (e.g. "youth", "literacy", "indigenous-led")
