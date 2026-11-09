@@ -184,10 +184,11 @@ node scripts/demo-videos/record-demos.js map-vertical # just one
 | `demo-videos/praxium-map-landscape.mp4` | 1920×1080 | YouTube, LinkedIn, website |
 | `demo-videos/praxium-admin.mp4` | 1920×1080 | Board training (internal) |
 
-The map videos use the live production data, so re-record after the map
+Every release tag also records them in CI and attaches them to the GitHub
+release. The map videos use the live production data, so re-record after the map
 changes. The admin video uses a local copy of the admin with the real data and
-a fake API, so the demo edits are never published. It shows real contact
-details, so keep it internal. Captions and scenes are defined in the script.
+a fake API, so the demo edits are never published. The contact details it
+shows are the same ones already public in the map's organization cards. Captions and scenes are defined in the script.
 
 ## Public JavaScript API
 
