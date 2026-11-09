@@ -48,7 +48,13 @@ jobs:
           ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
 
       - name: Build Electron app
-        run: npm run dist:${{ matrix.platform }}
+        # An empty CSC_LINK (no certificate secret) makes electron-builder treat the
+        # workspace directory as the certificate path and fail ("not a file") on macOS,
+        # so only export the signing variables when a certificate is actually configured.
+        shell: bash
+        run: |
+          if [ -z "$CSC_LINK" ]; then unset CSC_LINK CSC_KEY_PASSWORD; fi
+          npm run dist:${{ matrix.platform }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Windows code signing (optional - add secrets if you have a certificate)
@@ -93,21 +99,21 @@ jobs:
     
     steps:
       - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: release-windows
           path: artifacts
         continue-on-error: true
 
       - name: Download macOS artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: release-macos
           path: artifacts
         continue-on-error: true
 
       - name: Download Linux artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: release-linux
           path: artifacts
@@ -117,7 +123,7 @@ jobs:
         run: ls -la artifacts/ || echo "No artifacts found"
 
       - name: Create Release with Assets
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           files: |
