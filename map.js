@@ -70,6 +70,19 @@
     category: document.getElementById('category-filter'),
     tag: document.getElementById('tag-filter'),
     tagField: document.getElementById('tag-filter-field'),
+    filtersButton: document.getElementById('filters-button'),
+    filtersBadge: document.getElementById('filters-badge'),
+    activeFilterChips: document.getElementById('active-filter-chips'),
+    mobileResultCount: document.getElementById('mobile-result-count'),
+    sheetLayer: document.getElementById('filter-sheet-layer'),
+    sheet: document.getElementById('filter-sheet'),
+    sheetScrim: document.getElementById('filter-sheet-scrim'),
+    sheetClose: document.getElementById('filter-sheet-close'),
+    sheetCategoryOptions: document.getElementById('sheet-category-options'),
+    sheetTagGroup: document.getElementById('sheet-tag-group'),
+    sheetTagOptions: document.getElementById('sheet-tag-options'),
+    sheetClear: document.getElementById('filter-sheet-clear'),
+    sheetApply: document.getElementById('filter-sheet-apply'),
     clearFilters: document.getElementById('clear-filters'),
     list: document.getElementById('organization-list'),
     emptyResults: document.getElementById('empty-results'),
@@ -98,6 +111,9 @@
     selectedId: null,
     metrics: { organizations: 0, categories: 0, locations: 0, countries: 0, connections: 0 },
     usingFallbackData: false,
+    orderedCategories: [],
+    tagList: [],
+    sheetDraft: null, // { category, tag } while the phone filter sheet is open
   };
 
   let map = null;
@@ -466,6 +482,7 @@
 
   function renderFiltersAndLegend() {
     const orderedCategories = buildCategoryColors();
+    state.orderedCategories = orderedCategories;
     const selected = refs.category.value;
     refs.category.querySelectorAll('option:not([value="all"])').forEach((option) => option.remove());
     refs.legendItems.replaceChildren();
@@ -507,6 +524,7 @@
     // "All tags" uses an empty value so a tag literally named "All" can't collide with it.
     refs.tag.querySelectorAll('option:not([value=""])').forEach((option) => option.remove());
     const tags = dataTools.collectTags(state.organizations);
+    state.tagList = tags;
     tags.forEach(({ tag, count }) => {
       const option = document.createElement('option');
       option.value = tag.toLocaleLowerCase();
@@ -767,19 +785,25 @@
     });
   }
 
+  function matchesFilters(organization, searchTerm, category, tag) {
+    return (!searchTerm || normalizedSearchText(organization).includes(searchTerm))
+      && (category === 'all' || organization.category === category)
+      && (!tag || (organization.tags || []).some((value) => value.toLocaleLowerCase() === tag));
+  }
+
+  function currentSearchTerm() {
+    return refs.search.value.trim().toLocaleLowerCase();
+  }
+
   function applyFilters(options) {
     const settings = { fit: false, ...(options || {}) };
-    const searchTerm = refs.search.value.trim().toLocaleLowerCase();
+    const searchTerm = currentSearchTerm();
     const selectedCategory = refs.category.value;
     const selectedTag = refs.tag.value;
     state.visibleIds.clear();
 
     state.organizations.forEach((organization) => {
-      const searchMatches = !searchTerm || normalizedSearchText(organization).includes(searchTerm);
-      const categoryMatches = selectedCategory === 'all' || organization.category === selectedCategory;
-      const tagMatches = !selectedTag
-        || (organization.tags || []).some((tag) => tag.toLocaleLowerCase() === selectedTag);
-      const visible = searchMatches && categoryMatches && tagMatches;
+      const visible = matchesFilters(organization, searchTerm, selectedCategory, selectedTag);
       const card = state.cards.get(organization.id);
       const marker = state.markers.get(organization.id);
 
@@ -798,6 +822,7 @@
 
     const visibleCount = state.visibleIds.size;
     refs.resultCount.textContent = `${visibleCount} of ${state.organizations.length}`;
+    updateMobileFilterSummary();
     refs.emptyResults.hidden = visibleCount !== 0 || state.organizations.length === 0;
     refs.clearSearch.hidden = refs.search.value.length === 0;
     refs.clearFilters.hidden = !searchTerm && selectedCategory === 'all' && !selectedTag;
@@ -823,6 +848,7 @@
 
     renderStats();
     renderFiltersAndLegend();
+    buildSheetOptions(); // an open filter sheet picks up the new categories/tags
     renderOrganizations();
     applyFilters({ fit: false });
 
@@ -963,7 +989,166 @@
     }
   }
 
+  // ---- Phone filter sheet -------------------------------------------------
+  // The category/tag <select>s stay the source of truth; the sheet edits a
+  // draft and writes it back on "Show". Chips under the search show what's on.
+
+  function tagLabel(value) {
+    const entry = state.tagList.find(({ tag }) => tag.toLocaleLowerCase() === value);
+    return entry ? entry.tag : value;
+  }
+
+  function updateMobileFilterSummary() {
+    const category = refs.category.value;
+    const tag = refs.tag.value;
+    const active = (category !== 'all' ? 1 : 0) + (tag ? 1 : 0);
+    refs.filtersBadge.hidden = active === 0;
+    refs.filtersBadge.textContent = String(active);
+    refs.filtersButton.setAttribute('aria-label', active ? `Filters, ${active} applied` : 'Filters');
+    refs.mobileResultCount.textContent = `Showing ${state.visibleIds.size} of ${state.organizations.length}`;
+
+    refs.activeFilterChips.replaceChildren();
+    const addChip = (label, clear) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'active-filter-chip';
+      chip.setAttribute('aria-label', `Remove filter ${label}`);
+      appendTextElement(chip, 'span', '', label);
+      appendTextElement(chip, 'span', 'chip-x', '×').setAttribute('aria-hidden', 'true');
+      chip.addEventListener('click', () => {
+        clear();
+        applyFilters({ fit: true });
+        (refs.activeFilterChips.querySelector('button') || refs.filtersButton).focus();
+      });
+      refs.activeFilterChips.appendChild(chip);
+    };
+    if (category !== 'all') addChip(category, () => { refs.category.value = 'all'; });
+    if (tag) addChip(`#${tagLabel(tag)}`, () => { refs.tag.value = ''; });
+  }
+
+  function sheetOption(label, pressed, onPick) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'sheet-option';
+    button.textContent = label;
+    button.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+    button.addEventListener('click', onPick);
+    return button;
+  }
+
+  // Builds the option buttons (on open and after a data reload). Taps only update
+  // pressed states, so focus stays on the tapped button (iOS doesn't refocus on click).
+  function buildSheetOptions() {
+    const draft = state.sheetDraft;
+    if (!draft) return;
+    if (!state.orderedCategories.includes(draft.category)) draft.category = 'all';
+    if (!state.tagList.some(({ tag }) => tag.toLocaleLowerCase() === draft.tag)) draft.tag = '';
+
+    refs.sheetCategoryOptions.replaceChildren(...state.orderedCategories.map((category) => {
+      const button = sheetOption(category, false, () => {
+        draft.category = draft.category === category ? 'all' : category;
+        renderSheet();
+      });
+      button.dataset.kind = 'category';
+      button.dataset.value = category;
+      return button;
+    }));
+    refs.sheetTagGroup.hidden = state.tagList.length === 0;
+    refs.sheetTagOptions.replaceChildren(...state.tagList.map(({ tag }) => {
+      const value = tag.toLocaleLowerCase();
+      const button = sheetOption(`#${tag}`, false, () => {
+        draft.tag = draft.tag === value ? '' : value;
+        renderSheet();
+      });
+      button.dataset.kind = 'tag';
+      button.dataset.value = value;
+      return button;
+    }));
+    renderSheet();
+  }
+
+  function renderSheet() {
+    const draft = state.sheetDraft;
+    if (!draft) return;
+    refs.sheet.querySelectorAll('.sheet-option').forEach((button) => {
+      const selected = button.dataset.kind === 'category' ? draft.category : draft.tag;
+      button.setAttribute('aria-pressed', button.dataset.value === selected ? 'true' : 'false');
+    });
+
+    const term = currentSearchTerm();
+    const count = state.organizations
+      .filter((organization) => matchesFilters(organization, term, draft.category, draft.tag)).length;
+    const unfiltered = draft.category === 'all' && !draft.tag && !term;
+    refs.sheetApply.textContent = unfiltered
+      ? `Show all ${count}`
+      : `Show ${count} organization${count === 1 ? '' : 's'}`;
+  }
+
+  function openFilterSheet() {
+    state.sheetDraft = { category: refs.category.value, tag: refs.tag.value };
+    buildSheetOptions();
+    refs.sheetLayer.hidden = false;
+    refs.filtersButton.setAttribute('aria-expanded', 'true');
+    const first = refs.sheet.querySelector('.sheet-option[aria-pressed="true"]')
+      || refs.sheet.querySelector('.sheet-option')
+      || refs.sheetClose;
+    first.focus();
+  }
+
+  function closeFilterSheet(options) {
+    if (refs.sheetLayer.hidden) return;
+    const settings = { restoreFocus: true, ...(options || {}) };
+    state.sheetDraft = null;
+    refs.sheetLayer.hidden = true;
+    refs.filtersButton.setAttribute('aria-expanded', 'false');
+    if (settings.restoreFocus) refs.filtersButton.focus();
+  }
+
+  function applyFilterSheet() {
+    const draft = state.sheetDraft;
+    if (!draft) return;
+    refs.category.value = draft.category;
+    refs.tag.value = draft.tag;
+    closeFilterSheet();
+    applyFilters({ fit: true });
+  }
+
+  function trapSheetFocus(event) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation(); // close only the sheet, not the drawer behind it
+      closeFilterSheet();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = [...refs.sheet.querySelectorAll('button:not([disabled])')];
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  // Collapse the drawer's brand header once the list scrolls; expand at the top.
+  // Only collapse when the list overflows by more than the header frees up
+  // (~200px); otherwise collapsing removes the overflow and it would flicker.
+  function updateHeroCollapse() {
+    const list = refs.list;
+    const collapsed = refs.sidebar.classList.contains('hero-collapsed');
+    if (!collapsed && list.scrollTop > 24 && list.scrollHeight - list.clientHeight > 240) {
+      refs.sidebar.classList.add('hero-collapsed');
+    } else if (collapsed && list.scrollTop < 4) {
+      refs.sidebar.classList.remove('hero-collapsed');
+    }
+  }
+
   function closeSidebar() {
+    closeFilterSheet({ restoreFocus: false });
     refs.sidebar.classList.remove('sidebar-open');
     refs.sidebarOverlay.classList.remove('show');
     refs.sidebarOverlay.setAttribute('aria-hidden', 'true');
@@ -1046,6 +1231,30 @@
     refs.resetView.addEventListener('click', () => clearSelection(true));
     refs.statusDismiss.addEventListener('click', hideStatus);
 
+    // The phone search box shares its row with the Filters button: keep the hint short.
+    const phoneQuery = window.matchMedia('(max-width: 720px)');
+    const fullPlaceholder = refs.search.placeholder;
+    const syncPlaceholder = () => {
+      refs.search.placeholder = phoneQuery.matches ? 'Search' : fullPlaceholder;
+      if (!phoneQuery.matches) closeFilterSheet({ restoreFocus: false });
+    };
+    syncPlaceholder();
+    if (phoneQuery.addEventListener) phoneQuery.addEventListener('change', syncPlaceholder);
+    else if (phoneQuery.addListener) phoneQuery.addListener(syncPlaceholder);
+
+    refs.filtersButton.addEventListener('click', openFilterSheet);
+    refs.sheetClose.addEventListener('click', () => closeFilterSheet());
+    refs.sheetScrim.addEventListener('click', () => closeFilterSheet());
+    refs.sheetClear.addEventListener('click', () => {
+      if (!state.sheetDraft) return;
+      state.sheetDraft.category = 'all';
+      state.sheetDraft.tag = '';
+      renderSheet();
+    });
+    refs.sheetApply.addEventListener('click', applyFilterSheet);
+    refs.sheet.addEventListener('keydown', trapSheetFocus);
+    refs.list.addEventListener('scroll', updateHeroCollapse, { passive: true });
+
     refs.search.addEventListener('input', () => applyFilters());
     refs.search.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && refs.search.value) {
@@ -1091,7 +1300,8 @@
 
     document.addEventListener('keydown', (event) => {
       if (event.key !== 'Escape') return;
-      if (refs.legend.classList.contains('legend-open')) closeLegend();
+      if (!refs.sheetLayer.hidden) closeFilterSheet();
+      else if (refs.legend.classList.contains('legend-open')) closeLegend();
       else if (refs.sidebar.classList.contains('sidebar-open')) closeSidebar();
       else if (refs.shell.classList.contains('map-expanded')) setFallbackExpanded(false);
       else if (state.selectedId !== null) clearSelection(false);

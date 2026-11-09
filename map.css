@@ -1450,9 +1450,131 @@ body.dark .leaflet-tile-pane {
     line-height: 38px !important;
   }
 
-  /* Explore drawer: drop the hero and tighten spacing so the list gets the room */
+  /* Explore drawer: compact brand header that collapses as the list scrolls */
   #sidebar .network-hero {
+    padding: max(14px, env(safe-area-inset-top)) 16px 14px;
+  }
+
+  #sidebar .network-hero::after {
     display: none;
+  }
+
+  #sidebar .brand-lockup,
+  #sidebar .network-hero .eyebrow,
+  #sidebar .hero-copy {
+    display: block;
+    max-height: 90px;
+    overflow: hidden;
+    opacity: 1;
+    transition: max-height 280ms ease, opacity 200ms ease, margin 280ms ease;
+  }
+
+  #sidebar .brand-lockup {
+    display: flex;
+    font-size: 0.8rem;
+  }
+
+  #sidebar .network-hero .eyebrow {
+    margin: 18px 0 6px;
+  }
+
+  #sidebar .network-hero h1 {
+    max-width: none;
+    margin: 0;
+    font-size: 2rem;
+    line-height: 1.12;
+    transition: font-size 280ms ease;
+  }
+
+  #sidebar .hero-copy {
+    max-height: 70px;
+    margin: 10px 0 0;
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+
+  #sidebar.hero-collapsed .brand-lockup,
+  #sidebar.hero-collapsed .network-hero .eyebrow,
+  #sidebar.hero-collapsed .hero-copy {
+    max-height: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    opacity: 0;
+  }
+
+  #sidebar.hero-collapsed .network-hero h1 {
+    font-size: 1.25rem;
+  }
+
+  /* Stats: one row, bold numbers */
+  #sidebar .impact-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 18px;
+    margin-top: 12px;
+    border-top: 0;
+  }
+
+  #sidebar .impact-stat,
+  #sidebar .impact-stat:first-child {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    padding: 0;
+    border-left: 0;
+  }
+
+  #sidebar .impact-stat[hidden] {
+    display: none;
+  }
+
+  #sidebar .impact-stat strong {
+    font-size: 1.25rem;
+  }
+
+  #sidebar .impact-stat span {
+    margin-top: 0;
+    font-size: 0.75rem;
+    letter-spacing: 0;
+    text-transform: lowercase;
+  }
+
+  /* Search + Filters button; focus area and tag move into the sheet */
+  #sidebar .section-heading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  #sidebar .filter-stack {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+
+  #sidebar .search-field {
+    flex: 1 1 0;
+  }
+
+  #sidebar #category-filter,
+  #sidebar .tag-filter-field,
+  #sidebar #clear-filters {
+    display: none;
+  }
+
+  #sidebar .filters-button {
+    display: inline-flex;
+  }
+
+  #sidebar .active-filter-row {
+    display: flex;
+  }
+
+  #sidebar #search-input {
+    border-radius: 22px;
   }
 
   #sidebar .network-explorer {
@@ -1477,8 +1599,6 @@ body.dark .leaflet-tile-pane {
   }
 
   #sidebar .filter-stack {
-    grid-template-columns: 1fr !important;
-    gap: 6px !important;
     padding-bottom: 8px !important;
   }
 
@@ -1683,3 +1803,271 @@ body.dark .leaflet-tile-pane {
   border-color: var(--interactive);
   color: var(--link);
 }
+
+/* --- Phone filter sheet (hidden on wider screens) --- */
+.filters-button,
+.active-filter-row {
+  display: none;
+}
+
+.filters-button {
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 22px;
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.filters-button:focus-visible,
+.active-filter-chip:focus-visible,
+.sheet-option:focus-visible,
+.filter-sheet-actions button:focus-visible,
+#filter-sheet-close:focus-visible {
+  outline: 2px solid var(--interactive);
+  outline-offset: 2px;
+}
+
+.filters-badge {
+  display: inline-grid;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--interactive);
+  color: var(--interactive-text);
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.filters-badge[hidden] {
+  display: none;
+}
+
+.active-filter-row {
+  flex: 1 0 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.mobile-result-count {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.active-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.active-filter-chip {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--interactive);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.active-filter-chip span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-sheet-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.filter-sheet-layer[hidden] {
+  display: none;
+}
+
+.filter-sheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 20, 19, 0.55);
+  animation: praxium-fade-in 200ms ease-out;
+}
+
+.filter-sheet {
+  position: relative;
+  display: flex;
+  max-height: 85%;
+  flex-direction: column;
+  gap: 14px;
+  padding: 10px 20px max(20px, env(safe-area-inset-bottom));
+  border-radius: 20px 20px 0 0;
+  background: var(--surface-raised);
+  color: var(--text);
+  box-shadow: 0 -12px 32px rgba(20, 20, 19, 0.25);
+  animation: praxium-sheet-up 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.filter-sheet-handle {
+  align-self: center;
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+
+.filter-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filter-sheet-header h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: var(--weight-display);
+}
+
+#filter-sheet-close {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.filter-sheet-body {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.filter-sheet-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.filter-sheet-group[hidden] {
+  display: none;
+}
+
+.filter-sheet-group legend {
+  margin-bottom: 10px;
+  padding: 0;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.sheet-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sheet-option {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.sheet-option[aria-pressed="true"] {
+  border-color: var(--interactive);
+  background: var(--interactive);
+  color: var(--interactive-text);
+}
+
+.filter-sheet-actions {
+  display: flex;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.filter-sheet-actions button {
+  min-height: 48px;
+  border-radius: 24px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+#filter-sheet-clear {
+  flex: 1;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text);
+}
+
+#filter-sheet-apply {
+  flex: 2;
+  border: 0;
+  background: var(--interactive);
+  color: var(--interactive-text);
+}
+
+#filter-sheet-apply:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@keyframes praxium-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes praxium-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filter-sheet,
+  .filter-sheet-scrim {
+    animation: none;
+  }
+
+  #sidebar .brand-lockup,
+  #sidebar .network-hero .eyebrow,
+  #sidebar .hero-copy,
+  #sidebar .network-hero h1 {
+    transition: none;
+  }
+}
+
