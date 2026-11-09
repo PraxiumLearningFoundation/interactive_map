@@ -113,6 +113,12 @@ function createWindow() {
 
 // Track the currently open file path
 let currentFilePath = null;
+// Paths the user chose in an Open/Save dialog. The renderer may only write to
+// these, so a compromised page can't overwrite arbitrary files via save-file.
+const approvedSavePaths = new Set();
+function approvePath(filePath) {
+  if (filePath) approvedSavePaths.add(path.resolve(filePath));
+}
 
 async function openFile() {
   const result = await dialog.showOpenDialog(mainWindow, {
@@ -128,6 +134,7 @@ async function openFile() {
     try {
       const content = fs.readFileSync(filePath, 'utf-8');
       currentFilePath = filePath;
+      approvePath(filePath);
       mainWindow.webContents.send('file-opened', { content, filePath });
       mainWindow.setTitle(`Praxium Map Editor - ${path.basename(filePath)}`);
     } catch (err) {
@@ -155,6 +162,7 @@ async function saveFileAs() {
 
   if (!result.canceled && result.filePath) {
     currentFilePath = result.filePath;
+    approvePath(result.filePath);
     mainWindow.webContents.send('request-save', { filePath: result.filePath });
     mainWindow.setTitle(`Praxium Map Editor - ${path.basename(result.filePath)}`);
   }
@@ -176,6 +184,9 @@ function loadSampleData() {
 ipcMain.handle('save-file', async (event, { filePath, content }) => {
   if (typeof filePath !== 'string' || !filePath || typeof content !== 'string') {
     return { success: false, error: 'Invalid save request.' };
+  }
+  if (!approvedSavePaths.has(path.resolve(filePath))) {
+    return { success: false, error: 'Choose where to save with the Save dialog first.' };
   }
   try {
     fs.writeFileSync(filePath, content, 'utf-8');
@@ -204,11 +215,17 @@ ipcMain.handle('show-save-dialog', async () => {
     ],
     defaultPath: 'organization-network-map.json'
   });
+  if (!result.canceled) approvePath(result.filePath);
   return result;
 });
 
+const MESSAGE_TYPES = new Set(['none', 'info', 'error', 'question', 'warning']);
 ipcMain.handle('show-message', async (event, { type, title, message }) => {
-  await dialog.showMessageBox(mainWindow, { type, title, message });
+  await dialog.showMessageBox(mainWindow, {
+    type: MESSAGE_TYPES.has(type) ? type : 'info',
+    title: String(title || ''),
+    message: String(message || ''),
+  });
 });
 
 app.whenReady().then(() => {

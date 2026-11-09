@@ -451,3 +451,14 @@ test.describe('admin portal tags — legacy data', () => {
     await expect(page.locator('#org-tag-chips .tag-chip span')).toHaveText(['Literacy']);
   });
 });
+
+test.describe('admin portal — expired session', () => {
+  test('a login redirect from the API sends the user to sign in instead of "could not reach the server"', async ({ page }) => {
+    await openAdmin(page, {
+      publish: (route) => route.fulfill({ status: 302, headers: { location: '/.auth/login/aad' } }),
+    });
+    await page.locator('.org-card', { hasText: 'Highland' }).getByRole('button', { name: 'Edit' }).click();
+    await page.locator('#save-btn').click();
+    await expect(page).toHaveURL(/\/\.auth\/login\/aad$/);
+  });
+});

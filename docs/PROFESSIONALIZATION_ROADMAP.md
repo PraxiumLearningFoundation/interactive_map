@@ -16,7 +16,7 @@ relationships, and stories must remain verifiable.
 | Surface | Current role | Recommended direction |
 | --- | --- | --- |
 | GitHub Pages | Public, embeddable map | Keep it. Static hosting is an appropriate low-cost boundary for public content. |
-| GitHub Gist | Public organization dataset | Keep during the first Azure migration so the public data contract does not change. |
+| GitHub Gist | Public organization dataset | Kept after the Azure cutover so the public data contract did not change. |
 | Azure Static Web Apps | Board admin and Azure Functions API (Entra ID sign-in) | Done: cut over from Vercel in November 2026; Vercel retired. |
 | Electron editor | Offline and bulk-edit fallback | Retain as a recovery path, not the primary board workflow. |
 
@@ -87,7 +87,7 @@ Once those fields are maintained, future enhancements can responsibly include:
 - accessible organization detail pages that are linkable from the map;
 - privacy-respecting aggregate analytics for searches and organization clicks.
 
-## Azure migration plan
+## Azure migration (completed November 2026)
 
 Eligible nonprofits currently receive a **$2,000 USD annual Azure grant**. The
 grant must be renewed and usage beyond the credit can become pay-as-you-go, so
@@ -100,16 +100,16 @@ Official references:
 - [Azure Static Web Apps authentication](https://learn.microsoft.com/en-us/azure/static-web-apps/authentication-authorization)
 - [Azure Static Web Apps application settings](https://learn.microsoft.com/en-us/azure/static-web-apps/application-settings)
 
-### Phase A — prepare without changing production
+### Phase A — prepare without changing production (completed)
 
 - Confirm the nonprofit Azure sponsorship is active and note its renewal date.
 - Create separate resource groups for production and staging.
 - Add a conservative Azure budget and alerts well below the grant limit.
-- Inventory the four existing secrets: `GITHUB_PAT`, `GIST_ID`,
-  `ADMIN_PASSPHRASE`, and `SESSION_SECRET`.
+- App settings per environment: `GITHUB_PAT`, `GIST_ID`, `AZURE_CLIENT_ID`,
+  and `AZURE_CLIENT_SECRET`.
 - Use a test Gist in staging; never test write behavior against production data.
 
-### Phase B — port the admin/API
+### Phase B — port the admin/API (completed)
 
 - Host the `admin/` frontend in Azure Static Web Apps.
 - Port the Vercel handler adapters to Azure Functions while preserving the
@@ -119,10 +119,9 @@ Official references:
 - Protect admin routes and API routes with Microsoft Entra ID. Restrict sign-in
   to the Praxium tenant or an explicit administrator role rather than allowing
   any authenticated Microsoft account.
-- Retain the shared passphrase only as a short-lived migration fallback, then
-  remove it after Entra access is verified.
+- The shared passphrase has been removed; Entra ID is the only admin sign-in.
 
-### Phase C — staging acceptance tests
+### Phase C — staging acceptance tests (completed)
 
 - Sign in and sign out with each intended board account.
 - Verify unauthorized users cannot read or call admin API routes.
@@ -138,8 +137,7 @@ Official references:
 
 - Configure production settings and the production Gist only after staging
   passes.
-- Give the board the Azure admin URL and revoke or remove the Vercel deployment
-  once a rollback window has passed.
+- Board uses the Azure admin URL; the Vercel project was deleted in November 2026.
 - Keep GitHub Pages as the public iframe host; moving a static map into Azure
   provides little benefit by itself.
 - Document one owner for Azure billing/renewal and one owner for map content.

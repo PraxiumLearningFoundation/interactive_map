@@ -43,38 +43,9 @@ jobs:
             node -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))"
           done
 
-      - name: Check public map JavaScript syntax
-        run: |
-          node --check map.js
-          node --check network-data.js
-
-      - name: Check admin-editor/app.js syntax
-        run: node --check admin-editor/app.js
-
-      - name: Check categories.js / categories.legacy.js syntax
-        run: |
-          node --check categories.legacy.js
-          node -e "JSON.parse(require('fs').readFileSync('categories.json', 'utf8'))"
-
-      - name: Check api/ function syntax
-        run: |
-          for f in api/_lib/*.js api/src/functions/*.js; do
-            echo "Checking $f"
-            node --check "$f"
-          done
-
-      - name: Check admin/ front-end syntax
-        run: node --check admin/admin.js
-
-      - name: Run api/ unit tests (mocked Gist backend)
-        run: |
-          cp categories.json api/categories.json
-          node test/api.test.js
-
-      - name: Run public map data tests
-        run: |
-          node test/public-assets.test.js
-          node test/network-data.test.js
+      - name: Syntax checks and unit/API tests (npm run validate)
+        # Same command developers run locally, so CI can't drift from it.
+        run: npm run validate
 
   e2e:
     runs-on: ubuntu-latest

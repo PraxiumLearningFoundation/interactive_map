@@ -1,7 +1,4 @@
-// Throttling helper for the outbound Nominatim geocode proxy. The passphrase
-// brute-force rate limiting that used to live here was removed along with the
-// passphrase itself — Microsoft Entra ID now gates sign-in, so there's no
-// local login attempt to rate-limit.
+// Throttling helper for the outbound Nominatim geocode proxy.
 
 // Simple last-call throttle used for the Nominatim geocode proxy (policy: max ~1 req/sec).
 // Same best-effort caveat as before: serverless cold starts reset this, so it's a courtesy
